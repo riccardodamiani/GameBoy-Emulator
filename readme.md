@@ -1,6 +1,8 @@
 # Gameboy Emulator
 Open-source Gameboy emulator written in c++. 
 
+## Build requirements
+SDL2, SDL audio and SDL font libraries.
 
 ## To do
 - Implement support for MBC3+TIMER, MBC2, MBC4, MBC5 memory bank controllers
@@ -28,7 +30,8 @@ For now the keys can't be changed.
 | save state 	| f3 			| f3 			|
 
 
-## Game tested
+
+## Games tested
 | Game 									| State 		|
 |---------------------------------------|---------------|
 | Donkey kong 							| Playable 		|
@@ -46,8 +49,8 @@ For now the keys can't be changed.
 | Metroid II 							| Playable		|
 | FF Legend III							| Not sure		|
 
-**Perfect:** self explanatory
-**Great:** Has minor bugs or glitches
-**Fine:** Has some major bugs or glitches, but the game is still completable
-**Unplayable:** Has major bugs or glitches that don't allow to complete the game
-**Playable:** Game not fully tested but as far as I know is playable
+**Perfect:** self explanatory  
+**Great:** Has minor bugs or glitches  
+**Fine:** Has some major bugs or glitches, but the game is still completable  
+**Unplayable:** Has major bugs or glitches that don't allow to complete the game  
+**Playable:** Game not fully tested but as far as I know is playable  
