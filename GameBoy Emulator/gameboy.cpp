@@ -44,7 +44,7 @@ bool GameBoy::Init(const char* rom_filename) {
 	bootrom_file.read((char*)this->boot_rom, 256);
 	bootrom_file.close();
 
-	//zeros mem
+	//init mem
 	memset(&this->registers, 0, sizeof(this->registers));
 	this->registers.pc = 0;
 	memset(this->gb_mem, 0, sizeof(this->gb_mem));

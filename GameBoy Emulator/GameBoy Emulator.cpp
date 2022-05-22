@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
     std::string filename;
 #ifdef _DEBUG
-    filename = "Kirby's Dream Land (USA, Europe).gb";
+    filename = "..\\..\\games\\Pokemon Red (UE) [S][!].gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";

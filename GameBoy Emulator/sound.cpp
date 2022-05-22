@@ -221,24 +221,26 @@ void Sound::UpdateSound(IO_map* io) {
         return;
     }
     
-    //channel DACs are off?
-    if ((ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
+    //channel DACs are off or volume is killed?
+    if ((Mix_Playing(0) && ch1->initial_volume == 0) || (ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
         Mix_Pause(0);
+        ch1->initial_volume = ch1->vol_sweep_dir = 0;
     }
-    if ((ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
+    if ((Mix_Playing(1) && ch2->initial_volume == 0) || (ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
         Mix_Pause(1);
+        ch2->initial_volume = ch2->vol_sweep_dir = 0;
     }
-    if (!ch3->master_switch) {
+    if ((Mix_Playing(2) && ch3->volume == 0) || !ch3->master_switch) {
         Mix_Pause(2);
     }
-    if ((ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
+    if ((Mix_Playing(3) && ch4->initial_volume == 0) || (ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
         Mix_Pause(3);
+        ch4->initial_volume = ch4->vol_sweep_dir = 0;
     }
     
     //triggered ch1
     if (ch1->trigger) {     
-        Mix_Pause(0);
- 
+
         ch1->trigger = 0;
         channel1.trigger = 1;
         channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
@@ -264,7 +266,6 @@ void Sound::UpdateSound(IO_map* io) {
     }
 
     if (ch2->trigger) {     //triggered ch2
-        Mix_Pause(1);
 
         ch2->trigger = 0;
         channel2.trigger = 1;
@@ -291,7 +292,6 @@ void Sound::UpdateSound(IO_map* io) {
     }
 
     if (ch3->trigger) {     //triggered ch3
-        Mix_Pause(2);
 
         ch3->trigger = 0;
         channel3.trigger = 1;
@@ -313,7 +313,6 @@ void Sound::UpdateSound(IO_map* io) {
     }
 
     if (ch4->trigger) {
-        Mix_Pause(3);
 
         ch4->trigger = 0;
         channel4.trigger = 1;
