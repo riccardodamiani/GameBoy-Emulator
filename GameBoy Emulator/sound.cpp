@@ -312,7 +312,7 @@ void Sound::UpdateSound(IO_map* io) {
         Mix_Resume(2);
     }
 
-    if (ch4->trigger) {
+    if (ch4->trigger) {     //triggered ch4
 
         ch4->trigger = 0;
         channel4.trigger = 1;
