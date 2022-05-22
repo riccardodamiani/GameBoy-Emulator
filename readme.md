@@ -46,8 +46,7 @@ Keyboard map can't be customed yet.
 | Metroid II 							| Playable		|		|
 | FF Legend III							| Playable		| Game freezes when entering battle simulator |
 
-**Perfect:** self explanatory  
-**Great:** Has minor bugs or glitches  
-**Fine:** Has some major bugs or glitches, but the game is still completable  
+**Great:** Completable without any noticeable issue  
+**Fine:** Completable with some bugs or glitches  
 **Unplayable:** Has major bugs or glitches that don't allow to complete the game  
 **Playable:** Game not fully tested but as far as I know is playable  
