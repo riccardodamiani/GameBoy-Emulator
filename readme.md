@@ -11,7 +11,7 @@ SDL2, SDL audio and SDL font libraries.
 
 ## Known bugs
 - Donkey kong Land graphics is all screwed up.
-- Audio issues in some game (i.e. notes that last longer than expected, distortion, ecc..).
+- Audio issues in some games (i.e. distortion, missing channel).
 - FF Legend III: game freezes when entering battle simulator.
 
 
