@@ -39,6 +39,17 @@ namespace {
 		"INVALID CODE",		//21
 		"MBC7+SENSOR+RUMBLE+RAM+BATTERY"		//22
 	};
+	const char* supported_cardridge_types[] = {
+		"ROM ONLY",		//0
+		"MBC1",		//1
+		"MBC1+RAM",		//2
+		"MBC1+RAM+BATTERY",		//3
+		"ROM+RAM",		//8
+		"ROM+RAM+BATTERY",		//9
+		"MBC3",		//11
+		"MBC3+RAM",		//12
+		"MBC3+RAM+BATTERY",		//13
+	};
 };
 
 struct cartridge_header;

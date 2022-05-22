@@ -186,16 +186,18 @@ void Cartridge::verifyHeader(int fileSize) {
 			cardridge_type_info[header->cartridgeType] : "INVALID CODE") << 
 		")" << std::endl;
 #endif
-	if ((header->cartridgeType > 0x3) && header->cartridgeType != 8
-		&& header->cartridgeType != 9 && header->cartridgeType < 0x11
-		&& header->cartridgeType > 0x13) {		//not a mbc1 or no mbc cartridge
-		if (header->cartridgeType <= 22) {
-			fatal(FATAL_UNSUPPORTED_MBC_CHIP, __func__, cardridge_type_info[header->cartridgeType]);
-		}
-		else {
-			fatal(FATAL_UNSUPPORTED_MBC_CHIP, __func__, "INVALID CODE");
+	if (header->cartridgeType > 0x22) {
+		fatal(FATAL_UNSUPPORTED_MBC_CHIP, __func__, "MBC code out of bound");
+	}
+	bool supported_mbc = false;
+	for (int i = 0; i < 0x23; i++) {
+		if (strcmp(supported_cardridge_types[i], cardridge_type_info[header->cartridgeType]) == 0) {
+			supported_mbc = true;
+			break;
 		}
 	}
+	if(!supported_mbc)
+		fatal(FATAL_UNSUPPORTED_MBC_CHIP, __func__, cardridge_type_info[header->cartridgeType]);
 
 	//checks CGB flag
 	if (header->cgbFlag == 0x80) {
