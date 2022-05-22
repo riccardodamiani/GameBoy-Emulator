@@ -193,7 +193,7 @@ int GameBoy::nextInstruction() {
 			io_map->DIV++;
 		}
 	}
-	else cycles += 1;		//lcd and the timer still needs the clock to work in halt mode
+	else cycles += 1;		//lcd and the timer still need the clock to work in halt mode
 
 	handleJoypad();
 	if (!registers.stopped) {
