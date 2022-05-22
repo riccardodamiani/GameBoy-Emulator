@@ -2,8 +2,8 @@
 Open-source Gameboy emulator written in C++ for Windows. It uses SDL2 for graphics and SDL Mixer for audio. The project is still very much a work in progress and, for now, supports only DMG games. Windows api are only used for console stuff so it should be easily portable to other platforms.
 
 
-## Build requirements
-SDL2, SDL audio and SDL font libraries.
+## Building requirements
+SDL2, SDL Mixer and SDL Font libraries.
 
 
 ## Not yet implemented
@@ -13,7 +13,7 @@ SDL2, SDL audio and SDL font libraries.
 
 
 ## Keyboard map
-Keyboard map can't be customed yet.
+Keyboard map can't be customized yet.
 | GB button 	| Key 1 		| Key 2 		|
 |---------------|---------------|---------------|
 | a 			| q 			| o 			|
