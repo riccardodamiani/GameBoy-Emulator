@@ -1,22 +1,19 @@
 # Gameboy Emulator
-Open-source Gameboy emulator written in c++. 
+Open-source Gameboy emulator written in C++ for Windows. It uses SDL2 for graphics and SDL Mixer for audio. The project is still very much a work in progress and, for now, supports only DMG games. Windows api are only used for console stuff so it should be easily portable to other platforms.
+
 
 ## Build requirements
 SDL2, SDL audio and SDL font libraries.
 
-## To do
-- Implement support for MBC3+TIMER, MBC2, MBC4, MBC5 memory bank controllers
+
+## Not yet implemented
+- MBC3+TIMER, MBC2, MBC4, MBC5 memory bank controllers
 - Serial communication
 - Settings menu
 
-## Known bugs
-- Donkey kong Land graphics is all screwed up.
-- Audio issues in some games (i.e. distortion, missing channel).
-- FF Legend III: game freezes when entering battle simulator.
-
 
 ## Keyboard map
-For now the keys can't be changed.
+Keyboard map can't be customed yet.
 | GB button 	| Key 1 		| Key 2 		|
 |---------------|---------------|---------------|
 | a 			| q 			| o 			|
@@ -32,22 +29,22 @@ For now the keys can't be changed.
 
 
 ## Games tested
-| Game 									| State 		|
-|---------------------------------------|---------------|
-| Donkey kong 							| Playable 		|
-| Donkey kong Land 						| Unplayable	|
-| Legend of Zelda (Link's awakening)	| Playable		|
-| Pokemon Red							| Great			|
-| Super Mario Land						| Playable		|
-| Super Mario Land 2					| Playable		|
-| Wario Land - Super Mario Land 3 		| Playable		|
-| Super Mario Land 4 					| Playable		|
-| Kirby's Dream Land					| Playable		|
-| Kirby's Dream Land 2 					| Playable		|
-| Tetris (World)						| Playable		|
-| Space Invaders						| Playable		|
-| Metroid II 							| Playable		|
-| FF Legend III							| Not sure		|
+| Game 									| State 		| Bugs |
+|---------------------------------------|---------------|-------|
+| Donkey kong 							| Playable 		|		|
+| Donkey kong Land 						| Unplayable	| Major graphical issues |
+| Legend of Zelda (Link's awakening)	| Playable		|		|
+| Pokemon Red							| Great			|		|
+| Super Mario Land						| Playable		|		|
+| Super Mario Land 2					| Playable		| Audio channel 2 is distorted |
+| Wario Land - Super Mario Land 3 		| Playable		|		|
+| Super Mario Land 4 					| Playable		|		|
+| Kirby's Dream Land					| Playable		| Audio wave channel missing |
+| Kirby's Dream Land 2 					| Playable		| Audio is somewhat wrong |
+| Tetris (World)						| Playable		|		|
+| Space Invaders						| Playable		|		|
+| Metroid II 							| Playable		|		|
+| FF Legend III							| Playable		| Game freezes when entering battle simulator |
 
 **Perfect:** self explanatory  
 **Great:** Has minor bugs or glitches  
