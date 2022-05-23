@@ -4,7 +4,7 @@ The code is written for Windows, however Windows API are only used for console s
 
 
 ## Building requirements
-SDL2, SDL Mixer and SDL Font libraries.
+SDL2, SDL2_Mixer and imgui.
 
 
 ## Not yet implemented
