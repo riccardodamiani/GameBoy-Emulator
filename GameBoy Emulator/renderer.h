@@ -2,7 +2,6 @@
 #define TILE_H
 
 #include <SDL.h>
-#include <SDL_ttf.h>
 #include <cstdint>
 #include <mutex>
 #include <vector>
@@ -80,9 +79,7 @@ private:
 
 	//text stuff
 	float messageTimer;
-	SDL_Texture* messageTexture;
-	SDL_Rect messageRect;
-	TTF_Font* font;
+	std::string message;
 
 	int windowWidth, windowHeight;
 	int windowPosX, windowPosY;
@@ -92,6 +89,7 @@ private:
 	bool settingsMenu;
 	int settingTabs;
 	char* windowSizeSelectedItem;
+	bool showMessageBox;
 };
 
 #endif

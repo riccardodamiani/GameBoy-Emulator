@@ -8,7 +8,6 @@
 #include "input.h"
 
 #include <SDL.h>
-#include <SDL_ttf.h>
 #include <thread>
 #include <cstdint>
 #include <vector>
@@ -37,7 +36,6 @@ void Renderer::Init(int width, int height) {
 	renderScaleX = (float)width / 160.0;
 	renderScaleY = (float)height / 144.0;
 	messageTimer = 0;
-	messageTexture = nullptr;
 
 	//setting manu stuff
 	settingsMenu = false;
@@ -57,6 +55,7 @@ void Renderer::Init(int width, int height) {
 	memset(vramTemp, 0, 0x2000);
 	memset(oamTemp, 0, 256);
 
+	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");		//needed otherwise imgui breaks when resizing the window
 	_window = SDL_CreateWindow("", 80, 80, this->windowWidth, this->windowHeight, 0);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
@@ -78,11 +77,6 @@ void Renderer::Init(int width, int height) {
 	SDL_SetTextureBlendMode(bg_map, SDL_BLENDMODE_BLEND);
 
 	window_map = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, 256, 256);
-
-	TTF_Init();
-	this->font = TTF_OpenFont("Fonts\\Roboto-Regular.ttf", 72);
-	if (!font)
-		std::cout << "Warning: Couldn't init ttf font." << std::endl;
 }
 
 
@@ -130,6 +124,8 @@ void Renderer::ResizeWindow(int width, int height) {
 	SDL_SetWindowSize(_window, width, height);
 	windowWidth = width;
 	windowHeight = height;
+	renderScaleX = (float)windowWidth / 160.0;
+	renderScaleY = (float)windowHeight / 144.0;
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize.x = static_cast<float>(width);
 	io.DisplaySize.y = static_cast<float>(height);
@@ -145,33 +141,20 @@ void Renderer::turnOn() {
 
 void Renderer::showMessage(std::string message, float time) {
 	this->messageTimer = time;
-	
-	SDL_Surface* surface = TTF_RenderText_Shaded(font, message.c_str(), {20, 20, 20, 200}, {230, 230, 230, 230});
-	//SDL_Surface* surface = TTF_RenderText_Solid(font, message.c_str(), { 50, 50, 50, 200 });
-	messageTexture = SDL_CreateTextureFromSurface(_renderer, surface);
-	double scale = 1;
-	messageRect.w = surface->w / 2;
-	messageRect.h = surface->h / 2;
-	
-	if (messageRect.w > windowWidth-20) {
-		scale = (double)messageRect.w / (windowWidth - 20);
-		messageRect.w /= scale;
-		messageRect.h /= scale;
-	}
-	messageRect.x = (windowWidth / 2) - (surface->w / scale) * 0.25;
-	messageRect.y = (windowHeight / 10);
-
-	SDL_FreeSurface(surface);
-
+	this->message = message;
 }
 
 void Renderer::renderMessage() {
-	if (messageTexture != nullptr && messageTimer > 0) {
-		SDL_SetRenderTarget(_renderer, nullptr);
-		SDL_SetRenderDrawBlendMode(this->_renderer, SDL_BLENDMODE_BLEND);
-		SDL_SetTextureBlendMode(messageTexture, SDL_BLENDMODE_BLEND);
-		SDL_RenderCopy(_renderer, messageTexture, nullptr, &messageRect);
-	}
+
+	showMessageBox = (message != "" && messageTimer > 0);
+	if (!showMessageBox)
+		return;
+	int size = std::min((int)message.size() * 9, windowWidth-10);
+	ImGui::SetNextWindowPos(ImVec2(windowWidth / 2 - size/2, 20));
+	ImGui::SetNextWindowSize(ImVec2(size, 40));
+	ImGui::Begin("popup", nullptr, ImGuiWindowFlags_NoTitleBar);
+	ImGui::TextWrapped(message.c_str());
+	ImGui::End();
 }
 
 void Renderer::RenderFrame(double elapsedTime) {
@@ -197,6 +180,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 			ImGui::EndMainMenuBar();
 		}
 	}
+
 	if (settingsMenu) {
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
@@ -253,6 +237,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 			settingsMenu = false;
 		ImGui::End();
 	}
+	renderMessage();
 
 	ImGui::EndFrame();
 
@@ -265,8 +250,9 @@ void Renderer::RenderFrame(double elapsedTime) {
 	if (!(this->io->LCDC & 0x80) || stopped) {		//ldc disabled or gameboy is stopped
 		SDL_SetRenderDrawColor(this->_renderer, 224, 248, 208, 255);
 		SDL_RenderClear(this->_renderer);
+		ImGui::Render();
+		ImGuiSDL::Render(ImGui::GetDrawData());
 		SDL_RenderPresent(this->_renderer);
-		renderMessage();
 		return;
 	}
 
@@ -301,7 +287,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 	renderBg(frameRect);
 	renderWindow(frameRect);
 	renderSpritesWithPriority(frameRect, 0);		//above background
-	renderMessage();
+	//renderMessage();
 	//_debug_renderBgMap();
 	//_debug_renderWindowMap();
 	//_debug_renderBgTiles();
