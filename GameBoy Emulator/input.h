@@ -19,6 +19,7 @@ public:
 	bool isKeyHeld(SDL_Scancode key);
 	bool isMouseInWindow();
 	SDL_Scancode *getKeyboardMap();
+	void changingKeyboardMap(int keyIndex);
 private:
 	void keyUpEvent(const SDL_Event& event);
 	void keyDownEvent(const SDL_Event& event);
@@ -29,6 +30,8 @@ private:
 	std::array <bool, SDL_Scancode::SDL_NUM_SCANCODES> _releasedKeys;
 	std::mutex jp_mutex;
 	bool mouseInsideWindow;
+	bool updatingKbMap;
+	int keyIndex;
 
 	joypad jp;
 	joypad_map keysMap[2];

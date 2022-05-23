@@ -23,10 +23,17 @@ void Input::Init() {
 		_releasedKeys[i] = 0;
 		_heldKeys[i] = 0;
 	}
+	updatingKbMap = false;
+	keyIndex = 0;
 }
 
 SDL_Scancode* Input::getKeyboardMap() {
 	return (SDL_Scancode*)&keysMap[0];
+}
+
+void Input::changingKeyboardMap(int keyIndex) {
+	updatingKbMap = true;
+	this->keyIndex = keyIndex;
 }
 
 void Input::beginNewFrame() {
@@ -67,10 +74,17 @@ void Input::getSDLEvent() {
 		else if (event.type == SDL_KEYDOWN) {	//keyboard input
 			if (event.key.repeat == 0) {
 				this->keyDownEvent(event);
+				if (updatingKbMap) {
+					updatingKbMap = false;
+					((SDL_Scancode*)&keysMap[0])[keyIndex] = event.key.keysym.scancode;
+				}
 			}
 		}
 		else if (event.type == SDL_KEYUP) {
 			this->keyUpEvent(event);
+		}
+		else if (event.type == SDL_MOUSEBUTTONDOWN) {
+			updatingKbMap = false;
 		}
 	}
 

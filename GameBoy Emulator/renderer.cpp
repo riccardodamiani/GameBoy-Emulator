@@ -246,7 +246,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 						SDL_Keycode key = SDL_GetKeyFromScancode(map[index]);
 						const char* keyName = SDL_GetKeyName(key);
 						if (ImGui::Button(keyName)) {
-
+							_input->changingKeyboardMap(index);
 						}
 					}
 				}
