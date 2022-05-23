@@ -13,7 +13,7 @@ SDL2, SDL2_Mixer and imgui.
 
 
 ## Keyboard map
-Keyboard map can be customized in settings menu
+Keyboard map can be customized under menu/settings.
 | GB button 	| Key 1 		| Key 2 		|
 |---------------|---------------|---------------|
 | a 			| q 			| o 			|
