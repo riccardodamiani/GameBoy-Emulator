@@ -243,11 +243,13 @@ void Renderer::RenderFrame(double elapsedTime) {
 					}
 					else {
 						int index = row + (column - 1) * 8;
+						ImGui::PushID(index);
 						SDL_Keycode key = SDL_GetKeyFromScancode(map[index]);
 						const char* keyName = SDL_GetKeyName(key);
 						if (ImGui::Button(keyName)) {
 							_input->changingKeyboardMap(index);
 						}
+						ImGui::PopID();
 					}
 				}
 			}
