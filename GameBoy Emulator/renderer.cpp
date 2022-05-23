@@ -5,6 +5,7 @@
 #include "gameboy.h"
 #include "globals.h"
 #include "sound.h"
+#include "input.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -19,6 +20,14 @@
 
 Renderer::Renderer() {
 	
+}
+
+std::pair <int, int> Renderer::getWindowPosition() {
+	return std::pair <int, int>(windowPosX, windowPosY);
+}
+
+std::pair <int, int> Renderer::getWindowSize() {
+	return std::pair <int, int>(windowWidth, windowHeight);
 }
 
 void Renderer::Init(int width, int height) {
@@ -50,6 +59,7 @@ void Renderer::Init(int width, int height) {
 	_window = SDL_CreateWindow("", 80, 80, this->windowWidth, this->windowHeight, 0);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
+	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
 
 	ImGui::CreateContext();
 	ImGuiSDL::Initialize(_renderer, windowWidth, windowHeight);
@@ -157,24 +167,26 @@ void Renderer::renderMessage() {
 
 void Renderer::RenderFrame(double elapsedTime) {
 
+	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
+
 	ImGui::NewFrame();
-	//ImGui::ShowDemoWindow();
-	//ImGui::Begin("Menu");
-	if (ImGui::BeginMainMenuBar())
-	{
-		if (ImGui::BeginMenu("Menu"))
+	if (_input->isMouseInWindow()) {
+		if (ImGui::BeginMainMenuBar())
 		{
-			if (ImGui::MenuItem("Settings"))
+			if (ImGui::BeginMenu("Menu"))
 			{
-				settingsMenu = true;
+				if (ImGui::MenuItem("Settings"))
+				{
+					settingsMenu = true;
+				}
+				if (ImGui::MenuItem("Save state", "F3"))
+				{
+					_gameboy->saveState();
+				}
+				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem("Save state", "F3"))
-			{
-				_gameboy->saveState();
-			}
-			ImGui::EndMenu();
+			ImGui::EndMainMenuBar();
 		}
-		ImGui::EndMainMenuBar();
 	}
 	if (settingsMenu) {
 		ImGui::SetNextWindowPos(ImVec2(0, 0));

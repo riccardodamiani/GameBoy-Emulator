@@ -77,7 +77,17 @@ void Input::getSDLEvent() {
 	io.MouseDown[0] = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
 	io.MouseDown[1] = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
 	//io.MouseWheel = static_cast<float>(wheel);
+
+	//check whether the mouse is inside the window (used to show/hide menu bar)
+	std::pair <int, int> size = _renderer->getWindowSize();
+	mouseInsideWindow = (mouseX > 0) && (mouseX < size.first-10) &&
+		(mouseY > 0) && (mouseY < size.second-10);
+
 	return;
+}
+
+bool Input::isMouseInWindow() {
+	return mouseInsideWindow;
 }
 
 

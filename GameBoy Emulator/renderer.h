@@ -34,6 +34,8 @@ public:
 	void showMessage(std::string message, float time);
 	void turnOff();
 	void turnOn();
+	std::pair <int, int> getWindowPosition();
+	std::pair <int, int> getWindowSize();
 private:
 	void updateTiles();
 	void checkAndReload();
@@ -81,6 +83,7 @@ private:
 	TTF_Font* font;
 
 	int windowWidth, windowHeight;
+	int windowPosX, windowPosY;
 	float renderScaleX, renderScaleY;
 
 	//imgui stuff
