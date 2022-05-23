@@ -4,7 +4,7 @@ The code is written for Windows, however Windows API are only used for console s
 
 
 ## Building requirements
-SDL2, SDL2_Mixer and imgui.
+[SDL2](https://libsdl.org/download-2.0.php), [SDL2 Mixer](https://www.libsdl.org/projects/SDL_mixer/), [ImGui](https://github.com/ocornut/imgui) and [imgui_sdl](https://github.com/Tyyppi77/imgui_sdl).
 
 
 ## Not yet implemented
