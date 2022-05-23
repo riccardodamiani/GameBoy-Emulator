@@ -10,11 +10,10 @@ SDL2, SDL2_Mixer and imgui.
 ## Not yet implemented
 - MBC3+TIMER, MBC2, MBC4, MBC5 memory bank controllers
 - Serial communication
-- Settings menu
 
 
 ## Keyboard map
-Keyboard map can't be customized yet.
+Keyboard map can be customized in settings menu
 | GB button 	| Key 1 		| Key 2 		|
 |---------------|---------------|---------------|
 | a 			| q 			| o 			|
