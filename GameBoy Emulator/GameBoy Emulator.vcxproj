@@ -83,13 +83,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Development\SDL2_ttf\include;C:\Development\SDL2_mixer\include;C:\Development\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\SDL2_ttf\include;C:\Development\SDL2_mixer\include;C:\Development\SDL2\include;C:\Development\imgui;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Development\SDL2_ttf\lib\x64;C:\Development\SDL2_mixer\lib\x64;C:\Development\SDL2\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Development\SDL2_ttf\include;C:\Development\SDL2_mixer\include;C:\Development\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\SDL2_ttf\include;C:\Development\SDL2_mixer\include;C:\Development\SDL2\include;C:\Development\imgui;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Development\SDL2_ttf\lib\x64;C:\Development\SDL2_mixer\lib\x64;C:\Development\SDL2\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -158,6 +158,11 @@
     <ClCompile Include="gameboy.cpp" />
     <ClCompile Include="GameBoy Emulator.cpp" />
     <ClCompile Include="globals.cpp" />
+    <ClCompile Include="imgui\imgui.cpp" />
+    <ClCompile Include="imgui\imgui_draw.cpp" />
+    <ClCompile Include="imgui\imgui_sdl.cpp" />
+    <ClCompile Include="imgui\imgui_tables.cpp" />
+    <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="sound.cpp" />

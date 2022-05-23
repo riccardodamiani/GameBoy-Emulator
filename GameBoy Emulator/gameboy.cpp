@@ -75,6 +75,10 @@ void GameBoy::saveState() {
 	this->saveMutex.unlock();
 }
 
+bool* GameBoy::getSoundEnable() {
+	return this->sound->getSoundEnable();
+}
+
 void GameBoy::screenUpdate(int clocks) {
 	uint8_t stat_s = 0;
 

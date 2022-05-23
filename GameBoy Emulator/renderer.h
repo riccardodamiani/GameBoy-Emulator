@@ -81,7 +81,11 @@ private:
 	TTF_Font* font;
 
 	int windowWidth, windowHeight;
-	float renderScaleX, renderScaleY;;
+	float renderScaleX, renderScaleY;
+
+	//imgui stuff
+	bool settingsMenu;
+	int settingTabs;
 };
 
 #endif

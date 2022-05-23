@@ -25,7 +25,7 @@ public:
 	uint8_t* getOam();
 	void screenUpdate(int clocks);
 	void saveState();
-	
+	bool* getSoundEnable();
 private:
 	struct registers registers;
 	struct MBC mbc;

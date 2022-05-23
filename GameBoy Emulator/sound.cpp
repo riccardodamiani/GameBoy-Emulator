@@ -208,8 +208,8 @@ void Sound::UpdateSound(IO_map* io) {
     io_sound_wave_channel* ch3 = (io_sound_wave_channel*)&io->NR30;
     io_sound_noise_channel* ch4 = (io_sound_noise_channel*)&io->NOT_MAPPED_3;     //corrisponding to NR40
 
-    //audio chip is powered off
-    if (!(io->NR52 & 0x80)) {
+    //audio chip is powered off or emulator is muted
+    if (!(io->NR52 & 0x80) || !enableSound) {
         ch1->trigger = 0;
         ch2->trigger = 0;
         ch3->trigger = 0;
@@ -347,9 +347,15 @@ void Sound::Halt() {
     Mix_Pause(3);
 }
 
+bool* Sound::getSoundEnable() {
+    return &enableSound;
+}
+
 Sound::Sound()
 {
+    enableSound = true;
     int bufferLen = 5;
+
     //allocate 2 seconds of sound for each channel
     channel1.chunk.alen = SAMPLE_RATE * 2 * bufferLen;
     channel1.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);

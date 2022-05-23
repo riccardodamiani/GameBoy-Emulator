@@ -1,6 +1,10 @@
 #include "renderer.h"
 #include "structures.h"
 #include "errors.h"
+#include "structures.h"
+#include "gameboy.h"
+#include "globals.h"
+#include "sound.h"
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -8,9 +12,10 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
-#include "structures.h"
-#include "gameboy.h"
-#include "globals.h"
+
+// Dear ImGui
+#include <imgui.h>
+#include <imgui_sdl.h>
 
 Renderer::Renderer() {
 	
@@ -24,6 +29,10 @@ void Renderer::Init(int width, int height) {
 	renderScaleY = (float)height / 144.0;
 	messageTimer = 0;
 	messageTexture = nullptr;
+
+	//setting manu stuff
+	settingsMenu = false;
+	settingTabs = 0;
 
 	this->vram = _gameboy->getVram();
 	this->io = _gameboy->getIOMap();
@@ -41,6 +50,9 @@ void Renderer::Init(int width, int height) {
 	_window = SDL_CreateWindow("", 80, 80, this->windowWidth, this->windowHeight, 0);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
+
+	ImGui::CreateContext();
+	ImGuiSDL::Initialize(_renderer, windowWidth, windowHeight);
 
 	//texture tiles for 3 palettes
 	this->bg_tiles = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 192);
@@ -61,6 +73,7 @@ void Renderer::Init(int width, int height) {
 	if (!font)
 		std::cout << "Warning: Couldn't init ttf font." << std::endl;
 }
+
 
 //copy the vram and oam memory from the gameboy
 //to a internal memory
@@ -144,6 +157,61 @@ void Renderer::renderMessage() {
 
 void Renderer::RenderFrame(double elapsedTime) {
 
+	ImGui::NewFrame();
+	//ImGui::ShowDemoWindow();
+	//ImGui::Begin("Menu");
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Menu"))
+		{
+			if (ImGui::MenuItem("Settings"))
+			{
+				settingsMenu = true;
+			}
+			if (ImGui::MenuItem("Save state", "F3"))
+			{
+				_gameboy->saveState();
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+	if (settingsMenu) {
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
+		ImGui::Begin("Settings", &settingsMenu);
+		ImGui::SameLine();
+		if (ImGui::Button("Sound", ImVec2(100, 25)))
+		{
+			settingTabs = 0;
+		}
+		ImGui::SameLine();
+
+		if (ImGui::Button("Gameboy", ImVec2(100, 25)))
+		{
+			settingTabs = 1;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Joypad", ImVec2(100, 25)))
+		{
+			settingTabs = 2;
+		}
+
+		if (settingTabs == 0) {
+			ImGui::Checkbox("Enable sound", _gameboy->getSoundEnable());
+		}else if (settingTabs == 1) {
+
+		}else if (settingTabs == 2) {
+
+		}
+		ImGui::SetCursorPos(ImVec2(0, windowHeight-20)); // Move cursor on needed positions
+		if (ImGui::Button("Save and Close"))
+			settingsMenu = false;
+		ImGui::End();
+	}
+
+	ImGui::EndFrame();
+
 	this->messageTimer -= elapsedTime;
 
 	SDL_SetRenderTarget(_renderer, nullptr);
@@ -194,7 +262,11 @@ void Renderer::RenderFrame(double elapsedTime) {
 	//_debug_renderWindowMap();
 	//_debug_renderBgTiles();
 
+	ImGui::Render();
+	ImGuiSDL::Render(ImGui::GetDrawData());
+
 	SDL_RenderPresent(this->_renderer);
+	
 }
 
 void Renderer::renderBg(std::vector<scanlineStat> &frameRect) {
