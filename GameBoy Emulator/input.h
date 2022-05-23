@@ -20,6 +20,8 @@ public:
 	bool isMouseInWindow();
 	SDL_Scancode *getKeyboardMap();
 	void changingKeyboardMap(int keyIndex);
+	void saveKeyboardMap();
+	bool loadKeyboardMap();
 private:
 	void keyUpEvent(const SDL_Event& event);
 	void keyDownEvent(const SDL_Event& event);

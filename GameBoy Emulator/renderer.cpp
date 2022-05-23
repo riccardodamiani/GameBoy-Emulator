@@ -272,8 +272,10 @@ void Renderer::RenderFrame(double elapsedTime) {
 			}
 		}
 		ImGui::SetCursorPos(ImVec2(0, windowHeight-20)); // Move cursor on needed positions
-		if (ImGui::Button("Save and Close"))
+		if (ImGui::Button("Save and Close")) {
+			_input->saveKeyboardMap();
 			settingsMenu = false;
+		}
 		ImGui::End();
 	}
 	renderMessage();

@@ -5,18 +5,22 @@
 #include <SDL.h>
 #include <imgui.h>
 #include <imgui_sdl.h>
+#include <iostream>
+#include <fstream>
 
 Input::Input() {
 	
 }
 
 void Input::Init() {
-	keysMap[0] = { SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT,
-		SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_UP, SDL_SCANCODE_DOWN};
 
-	keysMap[1] = { SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN,
-	SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S};
+	if (!loadKeyboardMap()) {
+		keysMap[0] = { SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT,
+			SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_UP, SDL_SCANCODE_DOWN };
 
+		keysMap[1] = { SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN,
+		SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S };
+	}
 
 	for (int i = 0; i < _pressedKeys.size(); i++) {
 		_pressedKeys[i] = 0;
@@ -34,6 +38,21 @@ SDL_Scancode* Input::getKeyboardMap() {
 void Input::changingKeyboardMap(int keyIndex) {
 	updatingKbMap = true;
 	this->keyIndex = keyIndex;
+}
+
+void Input::saveKeyboardMap() {
+	std::ofstream file("config.dat", std::ios::binary);
+	file.write((char*)&keysMap[0], 16*4);
+	file.close();
+}
+
+bool Input::loadKeyboardMap() {
+	std::ifstream file("config.dat", std::ios::binary);
+	if (!file.is_open())
+		return false;
+	file.read((char*)&keysMap[0], 16 * 4);
+	file.close();
+	return true;
 }
 
 void Input::beginNewFrame() {
