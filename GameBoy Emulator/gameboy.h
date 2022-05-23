@@ -26,6 +26,7 @@ public:
 	void screenUpdate(int clocks);
 	void saveState();
 	bool* getSoundEnable();
+	void setClockSpeed(float multiplier);
 private:
 	struct registers registers;
 	struct MBC mbc;
@@ -43,6 +44,7 @@ private:
 	scanlineStat frameStat[144];
 	bool _saveState;
 	std::mutex saveMutex;
+	float clockSpeed;
 
 	uint32_t time_clock;
 	std::chrono::steady_clock::time_point realTimePoint;

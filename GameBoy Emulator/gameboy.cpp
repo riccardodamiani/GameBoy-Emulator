@@ -21,6 +21,7 @@ GameBoy::GameBoy(){
 
 bool GameBoy::Init(const char* rom_filename) {
 	
+	clockSpeed = 1;
 	this->vram = (uint8_t*)(this->gb_mem + 0x8000);
 	this->wram = (uint8_t*)(this->gb_mem + 0xc000);
 	this->io_map = (IO_map*)(this->gb_mem + 0xff00);
@@ -179,6 +180,10 @@ uint8_t* GameBoy::getOam() {
 	return this->oam;
 }
 
+void GameBoy::setClockSpeed(float multiplier) {
+	clockSpeed = multiplier;
+}
+
 int GameBoy::nextInstruction() {
 
 	int cycles = 0;
@@ -197,7 +202,7 @@ int GameBoy::nextInstruction() {
 			io_map->DIV++;
 		}
 	}
-	else cycles += 1;		//lcd and the timer still need the clock to work in halt mode
+	else cycles += 4;		//lcd and the timer still need the clock to work in halt mode
 
 	handleJoypad();
 	if (!registers.stopped) {
@@ -209,9 +214,9 @@ int GameBoy::nextInstruction() {
 
 	//limits gameboy speed
 	time_clock += cycles * 4;
-	if (time_clock >= 4200) {
+	if (time_clock >= 4194*clockSpeed) {
 		time_clock = 0;
-		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms
+		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms of gameboy time
 		_internal_saveState();
 
 		auto endTime = std::chrono::high_resolution_clock::now();

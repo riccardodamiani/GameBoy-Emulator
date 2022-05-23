@@ -41,6 +41,7 @@ void Renderer::Init(int width, int height) {
 	settingsMenu = false;
 	settingTabs = 0;
 	windowSizeSelectedItem = (char*)windowSizeItems[2];
+	gameSpeedSelectedItem = (char*)gameSpeedItems[2];
 
 	this->vram = _gameboy->getVram();
 	this->io = _gameboy->getIOMap();
@@ -210,7 +211,21 @@ void Renderer::RenderFrame(double elapsedTime) {
 		if (settingTabs == 0) {
 			ImGui::Checkbox("Enable sound", _gameboy->getSoundEnable());
 		}else if (settingTabs == 1) {
-
+			if (ImGui::BeginCombo("Game speed", gameSpeedSelectedItem))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(gameSpeedItems); n++)
+				{
+					bool is_selected = (gameSpeedSelectedItem == gameSpeedItems[n]);
+					if (ImGui::Selectable(gameSpeedItems[n], is_selected)) {
+						gameSpeedSelectedItem = (char*)gameSpeedItems[n];
+						_gameboy->setClockSpeed(0.5 + n*0.25);
+					}
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
 		}else if (settingTabs == 2) {
 
 		}else if (settingTabs == 3) {
@@ -238,7 +253,6 @@ void Renderer::RenderFrame(double elapsedTime) {
 		ImGui::End();
 	}
 	renderMessage();
-
 	ImGui::EndFrame();
 
 	this->messageTimer -= elapsedTime;
