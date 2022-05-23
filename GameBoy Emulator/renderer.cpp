@@ -40,7 +40,7 @@ void Renderer::Init(int width, int height) {
 	//setting manu stuff
 	settingsMenu = false;
 	settingTabs = 0;
-	windowSizeSelectedItem = (char*)windowSizeItems[3];
+	windowSizeSelectedItem = (char*)windowSizeItems[2];
 
 	this->vram = _gameboy->getVram();
 	this->io = _gameboy->getIOMap();
@@ -184,7 +184,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 	if (settingsMenu) {
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
-		ImGui::Begin("Settings", &settingsMenu);
+		ImGui::Begin("Settings", &settingsMenu, ImGuiWindowFlags_NoCollapse);
 		ImGui::SameLine();
 		if (ImGui::Button("Sound", ImVec2(windowWidth/5, 25)))
 		{
@@ -223,7 +223,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 					bool is_selected = (windowSizeSelectedItem == windowSizeItems[n]);
 					if (ImGui::Selectable(windowSizeItems[n], is_selected)) {
 						windowSizeSelectedItem = (char*)windowSizeItems[n];
-						this->ResizeWindow(160 * (n + 1), 144 * (n + 1));
+						this->ResizeWindow(160 * (n + 2), 144 * (n + 2));
 					}
 					if (is_selected) {
 						ImGui::SetItemDefaultFocus();
@@ -287,7 +287,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 	renderBg(frameRect);
 	renderWindow(frameRect);
 	renderSpritesWithPriority(frameRect, 0);		//above background
-	//renderMessage();
+
 	//_debug_renderBgMap();
 	//_debug_renderWindowMap();
 	//_debug_renderBgTiles();

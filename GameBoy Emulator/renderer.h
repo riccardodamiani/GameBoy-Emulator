@@ -20,7 +20,7 @@ namespace {
 		{52, 104, 86, 0},
 		{8, 24, 32, 0}
 	};
-	const char* windowSizeItems[] = { "1x1", "2x2", "3x3", "4x4", "5x5", "6x6" };
+	const char* windowSizeItems[] = { "2x2", "3x3", "4x4", "5x5", "6x6" };
 }
 
 class Renderer {
