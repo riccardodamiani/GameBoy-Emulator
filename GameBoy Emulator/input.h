@@ -18,6 +18,7 @@ public:
 	bool wasKeyReleased(SDL_Scancode key);
 	bool isKeyHeld(SDL_Scancode key);
 	bool isMouseInWindow();
+	SDL_Scancode *getKeyboardMap();
 private:
 	void keyUpEvent(const SDL_Event& event);
 	void keyDownEvent(const SDL_Event& event);
@@ -30,8 +31,7 @@ private:
 	bool mouseInsideWindow;
 
 	joypad jp;
-	joypad_map keysMap1;
-	joypad_map keysMap2;
+	joypad_map keysMap[2];
 };
 
 #endif

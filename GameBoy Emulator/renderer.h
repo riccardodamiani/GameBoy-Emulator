@@ -22,6 +22,7 @@ namespace {
 	};
 	const char* windowSizeItems[] = { "2x2", "3x3", "4x4", "5x5", "6x6" };
 	const char* gameSpeedItems[] = { "0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "1.75x", "2.0x" };
+	const char* gbButtonStrings[] = {"a", "b", "start", "select", "left", "right", "up", "down"};
 }
 
 class Renderer {

@@ -11,17 +11,22 @@ Input::Input() {
 }
 
 void Input::Init() {
-	keysMap1 = { SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_UP, SDL_SCANCODE_DOWN,
-		SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_LSHIFT, SDL_SCANCODE_SPACE };
+	keysMap[0] = { SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT,
+		SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_UP, SDL_SCANCODE_DOWN};
 
-	keysMap2 = { SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S,
-		SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE };
+	keysMap[1] = { SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN,
+	SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S};
+
 
 	for (int i = 0; i < _pressedKeys.size(); i++) {
 		_pressedKeys[i] = 0;
 		_releasedKeys[i] = 0;
 		_heldKeys[i] = 0;
 	}
+}
+
+SDL_Scancode* Input::getKeyboardMap() {
+	return (SDL_Scancode*)&keysMap[0];
 }
 
 void Input::beginNewFrame() {
@@ -32,14 +37,14 @@ void Input::beginNewFrame() {
 	getSDLEvent();
 
 	jp_mutex.lock();
-	jp.left = (isKeyHeld(keysMap1.left) || isKeyHeld(keysMap2.left));
-	jp.right = (isKeyHeld(keysMap1.right) || isKeyHeld(keysMap2.right));
-	jp.up = (isKeyHeld(keysMap1.up) || isKeyHeld(keysMap2.up));
-	jp.down = (isKeyHeld(keysMap1.down) || isKeyHeld(keysMap2.down));
-	jp.a = (isKeyHeld(keysMap1.a) || isKeyHeld(keysMap2.a));
-	jp.b = (isKeyHeld(keysMap1.b) || isKeyHeld(keysMap2.b));
-	jp.select = (isKeyHeld(keysMap1.select) || isKeyHeld(keysMap2.select));
-	jp.start = (isKeyHeld(keysMap1.start) || isKeyHeld(keysMap2.start));
+	jp.left = (isKeyHeld(keysMap[0].left) || isKeyHeld(keysMap[1].left));
+	jp.right = (isKeyHeld(keysMap[0].right) || isKeyHeld(keysMap[1].right));
+	jp.up = (isKeyHeld(keysMap[0].up) || isKeyHeld(keysMap[1].up));
+	jp.down = (isKeyHeld(keysMap[0].down) || isKeyHeld(keysMap[1].down));
+	jp.a = (isKeyHeld(keysMap[0].a) || isKeyHeld(keysMap[1].a));
+	jp.b = (isKeyHeld(keysMap[0].b) || isKeyHeld(keysMap[1].b));
+	jp.select = (isKeyHeld(keysMap[0].select) || isKeyHeld(keysMap[1].select));
+	jp.start = (isKeyHeld(keysMap[0].start) || isKeyHeld(keysMap[1].start));
 	jp_mutex.unlock();
 
 	if (wasKeyReleased(SDL_SCANCODE_F3)) {

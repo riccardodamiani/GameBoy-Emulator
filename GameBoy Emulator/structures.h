@@ -211,8 +211,9 @@ struct joypad {
 };
 
 struct joypad_map {
+	SDL_Scancode a, b, start, select;
 	SDL_Scancode left, right, up, down;
-	SDL_Scancode a, b, select, start;
+	
 };
 
 struct IO_map {

@@ -227,7 +227,31 @@ void Renderer::RenderFrame(double elapsedTime) {
 				ImGui::EndCombo();
 			}
 		}else if (settingTabs == 2) {
+			ImGui::BeginTable("Keyboard map", 3);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0); ImGui::Text("Button");
+			ImGui::TableSetColumnIndex(1); ImGui::Text("Key 1");
+			ImGui::TableSetColumnIndex(2); ImGui::Text("Key 2");
+			SDL_Scancode* map = _input->getKeyboardMap();
+			
+			for (int row = 0; row < 8; row++){
+				ImGui::TableNextRow();
+				for (int column = 0; column < 3; column++){
+					ImGui::TableSetColumnIndex(column);
+					if (column == 0) {
+						ImGui::Text(gbButtonStrings[row]);
+					}
+					else {
+						int index = row + (column - 1) * 8;
+						SDL_Keycode key = SDL_GetKeyFromScancode(map[index]);
+						const char* keyName = SDL_GetKeyName(key);
+						if (ImGui::Button(keyName)) {
 
+						}
+					}
+				}
+			}
+			ImGui::EndTable();
 		}else if (settingTabs == 3) {
 			
 			// The second parameter is the label previewed before opening the combo.
