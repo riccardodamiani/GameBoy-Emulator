@@ -42,6 +42,7 @@ void Renderer::Init(int width, int height) {
 	//setting manu stuff
 	settingsMenu = false;
 	settingTabs = 0;
+	windowSizeSelectedItem = (char*)windowSizeItems[3];
 
 	this->vram = _gameboy->getVram();
 	this->io = _gameboy->getIOMap();
@@ -125,6 +126,14 @@ void Renderer::checkAndReload() {
 	memMutex.unlock();
 }
 
+void Renderer::ResizeWindow(int width, int height) {
+	SDL_SetWindowSize(_window, width, height);
+	windowWidth = width;
+	windowHeight = height;
+	ImGuiIO& io = ImGui::GetIO();
+	io.DisplaySize.x = static_cast<float>(width);
+	io.DisplaySize.y = static_cast<float>(height);
+}
 
 void Renderer::turnOff() {
 	stopped = true;
@@ -193,20 +202,25 @@ void Renderer::RenderFrame(double elapsedTime) {
 		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
 		ImGui::Begin("Settings", &settingsMenu);
 		ImGui::SameLine();
-		if (ImGui::Button("Sound", ImVec2(100, 25)))
+		if (ImGui::Button("Sound", ImVec2(windowWidth/5, 25)))
 		{
 			settingTabs = 0;
 		}
 		ImGui::SameLine();
 
-		if (ImGui::Button("Gameboy", ImVec2(100, 25)))
+		if (ImGui::Button("Gameboy", ImVec2(windowWidth / 5, 25)))
 		{
 			settingTabs = 1;
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Joypad", ImVec2(100, 25)))
+		if (ImGui::Button("Joypad", ImVec2(windowWidth / 5, 25)))
 		{
 			settingTabs = 2;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Window", ImVec2(windowWidth / 5, 25)))
+		{
+			settingTabs = 3;
 		}
 
 		if (settingTabs == 0) {
@@ -215,6 +229,24 @@ void Renderer::RenderFrame(double elapsedTime) {
 
 		}else if (settingTabs == 2) {
 
+		}else if (settingTabs == 3) {
+			
+			// The second parameter is the label previewed before opening the combo.
+			if (ImGui::BeginCombo("Window Size", windowSizeSelectedItem))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(windowSizeItems); n++)
+				{
+					bool is_selected = (windowSizeSelectedItem == windowSizeItems[n]);
+					if (ImGui::Selectable(windowSizeItems[n], is_selected)) {
+						windowSizeSelectedItem = (char*)windowSizeItems[n];
+						this->ResizeWindow(160 * (n + 1), 144 * (n + 1));
+					}
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
 		}
 		ImGui::SetCursorPos(ImVec2(0, windowHeight-20)); // Move cursor on needed positions
 		if (ImGui::Button("Save and Close"))

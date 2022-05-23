@@ -21,6 +21,7 @@ namespace {
 		{52, 104, 86, 0},
 		{8, 24, 32, 0}
 	};
+	const char* windowSizeItems[] = { "1x1", "2x2", "3x3", "4x4", "5x5", "6x6" };
 }
 
 class Renderer {
@@ -36,6 +37,7 @@ public:
 	void turnOn();
 	std::pair <int, int> getWindowPosition();
 	std::pair <int, int> getWindowSize();
+	void ResizeWindow(int width, int height);
 private:
 	void updateTiles();
 	void checkAndReload();
@@ -89,6 +91,7 @@ private:
 	//imgui stuff
 	bool settingsMenu;
 	int settingTabs;
+	char* windowSizeSelectedItem;
 };
 
 #endif
