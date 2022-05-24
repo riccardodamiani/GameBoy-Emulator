@@ -57,7 +57,7 @@ void Renderer::Init(int width, int height) {
 	memset(oamTemp, 0, 256);
 
 	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");		//needed otherwise imgui breaks when resizing the window
-	_window = SDL_CreateWindow("", 80, 80, this->windowWidth, this->windowHeight, 0);
+	_window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, this->windowWidth, this->windowHeight, 0);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
 	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
@@ -77,6 +77,7 @@ void Renderer::Init(int width, int height) {
 	bg_map = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, 256, 256);
 	SDL_SetTextureBlendMode(bg_map, SDL_BLENDMODE_BLEND);
 
+	//window map
 	window_map = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, 256, 256);
 }
 
@@ -145,8 +146,9 @@ void Renderer::showMessage(std::string message, float time) {
 	this->message = message;
 }
 
-void Renderer::renderMessage() {
+void Renderer::renderMessage(float elapsed) {
 
+	this->messageTimer -= elapsed;
 	showMessageBox = (message != "" && messageTimer > 0);
 	if (!showMessageBox)
 		return;
@@ -160,137 +162,15 @@ void Renderer::renderMessage() {
 
 void Renderer::RenderFrame(double elapsedTime) {
 
-	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
-
-	ImGui::NewFrame();
-	if (_input->isMouseInWindow()) {
-		if (ImGui::BeginMainMenuBar())
-		{
-			if (ImGui::BeginMenu("Menu"))
-			{
-				if (ImGui::MenuItem("Settings"))
-				{
-					settingsMenu = true;
-				}
-				if (ImGui::MenuItem("Save state", "F3"))
-				{
-					_gameboy->saveState();
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
-	}
-
-	if (settingsMenu) {
-		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
-		ImGui::Begin("Settings", &settingsMenu, ImGuiWindowFlags_NoCollapse);
-		ImGui::SameLine();
-		if (ImGui::Button("Sound", ImVec2(windowWidth/5, 25)))
-		{
-			settingTabs = 0;
-		}
-		ImGui::SameLine();
-
-		if (ImGui::Button("Gameboy", ImVec2(windowWidth / 5, 25)))
-		{
-			settingTabs = 1;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Joypad", ImVec2(windowWidth / 5, 25)))
-		{
-			settingTabs = 2;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Window", ImVec2(windowWidth / 5, 25)))
-		{
-			settingTabs = 3;
-		}
-
-		if (settingTabs == 0) {
-			ImGui::Checkbox("Enable sound", _gameboy->getSoundEnable());
-		}else if (settingTabs == 1) {
-			if (ImGui::BeginCombo("Game speed", gameSpeedSelectedItem))
-			{
-				for (int n = 0; n < IM_ARRAYSIZE(gameSpeedItems); n++)
-				{
-					bool is_selected = (gameSpeedSelectedItem == gameSpeedItems[n]);
-					if (ImGui::Selectable(gameSpeedItems[n], is_selected)) {
-						gameSpeedSelectedItem = (char*)gameSpeedItems[n];
-						_gameboy->setClockSpeed(0.5 + n*0.25);
-					}
-					if (is_selected) {
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
-		}else if (settingTabs == 2) {
-			ImGui::BeginTable("Keyboard map", 3);
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0); ImGui::Text("Button");
-			ImGui::TableSetColumnIndex(1); ImGui::Text("Key 1");
-			ImGui::TableSetColumnIndex(2); ImGui::Text("Key 2");
-			SDL_Scancode* map = _input->getKeyboardMap();
-			
-			for (int row = 0; row < 8; row++){
-				ImGui::TableNextRow();
-				for (int column = 0; column < 3; column++){
-					ImGui::TableSetColumnIndex(column);
-					if (column == 0) {
-						ImGui::Text(gbButtonStrings[row]);
-					}
-					else {
-						int index = row + (column - 1) * 8;
-						ImGui::PushID(index);
-						SDL_Keycode key = SDL_GetKeyFromScancode(map[index]);
-						const char* keyName = SDL_GetKeyName(key);
-						if (ImGui::Button(keyName)) {
-							_input->changingKeyboardMap(index);
-						}
-						ImGui::PopID();
-					}
-				}
-			}
-			ImGui::EndTable();
-		}else if (settingTabs == 3) {
-			
-			// The second parameter is the label previewed before opening the combo.
-			if (ImGui::BeginCombo("Window Size", windowSizeSelectedItem))
-			{
-				for (int n = 0; n < IM_ARRAYSIZE(windowSizeItems); n++)
-				{
-					bool is_selected = (windowSizeSelectedItem == windowSizeItems[n]);
-					if (ImGui::Selectable(windowSizeItems[n], is_selected)) {
-						windowSizeSelectedItem = (char*)windowSizeItems[n];
-						this->ResizeWindow(160 * (n + 2), 144 * (n + 2));
-					}
-					if (is_selected) {
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
-		}
-		ImGui::SetCursorPos(ImVec2(0, windowHeight-20)); // Move cursor on needed positions
-		if (ImGui::Button("Save and Close")) {
-			_input->saveKeyboardMap();
-			settingsMenu = false;
-		}
-		ImGui::End();
-	}
-	renderMessage();
-	ImGui::EndFrame();
-
-	this->messageTimer -= elapsedTime;
+	//SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
+	imguiFrame(elapsedTime);
 
 	SDL_SetRenderTarget(_renderer, nullptr);
 	SDL_SetRenderDrawBlendMode(this->_renderer, SDL_BLENDMODE_NONE);
 
 	checkAndReload();
 	if (!(this->io->LCDC & 0x80) || stopped) {		//ldc disabled or gameboy is stopped
-		SDL_SetRenderDrawColor(this->_renderer, 224, 248, 208, 255);
+		SDL_SetRenderDrawColor(this->_renderer, 224, 248, 208, 255);		//white
 		SDL_RenderClear(this->_renderer);
 		ImGui::Render();
 		ImGuiSDL::Render(ImGui::GetDrawData());
@@ -339,6 +219,131 @@ void Renderer::RenderFrame(double elapsedTime) {
 
 	SDL_RenderPresent(this->_renderer);
 	
+}
+
+void Renderer::imguiFrame(float elapsed) {
+	ImGui::NewFrame();
+	if (_input->isMouseInWindow()) {		//hide main menu bar when mouse is outside the window
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("Menu"))
+			{
+				if (ImGui::MenuItem("Settings"))
+				{
+					settingsMenu = true;
+				}
+				if (ImGui::MenuItem("Save state", "F3"))
+				{
+					_gameboy->saveState();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+	}
+
+	if (settingsMenu) {
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
+		ImGui::Begin("Settings", &settingsMenu, ImGuiWindowFlags_NoCollapse);
+		ImGui::SameLine();
+		if (ImGui::Button("Sound", ImVec2(windowWidth / 5, 25)))
+		{
+			settingTabs = 0;
+		}
+		ImGui::SameLine();
+
+		if (ImGui::Button("Gameboy", ImVec2(windowWidth / 5, 25)))
+		{
+			settingTabs = 1;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Joypad", ImVec2(windowWidth / 5, 25)))
+		{
+			settingTabs = 2;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Window", ImVec2(windowWidth / 5, 25)))
+		{
+			settingTabs = 3;
+		}
+
+		if (settingTabs == 0) {		//sound settings
+			ImGui::Checkbox("Enable sound", _gameboy->getSoundEnable());
+		}
+		else if (settingTabs == 1) {		//gameboy settings
+			if (ImGui::BeginCombo("Game speed", gameSpeedSelectedItem))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(gameSpeedItems); n++)
+				{
+					bool is_selected = (gameSpeedSelectedItem == gameSpeedItems[n]);
+					if (ImGui::Selectable(gameSpeedItems[n], is_selected)) {		//set new selected item
+						gameSpeedSelectedItem = (char*)gameSpeedItems[n];
+						_gameboy->setClockSpeed(0.5 + n * 0.25);
+					}
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+		}
+		else if (settingTabs == 2) {		//keyboard settings
+			ImGui::BeginTable("Keyboard map", 3);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0); ImGui::Text("Button");
+			ImGui::TableSetColumnIndex(1); ImGui::Text("Key 1");
+			ImGui::TableSetColumnIndex(2); ImGui::Text("Key 2");
+			SDL_Scancode* map = _input->getKeyboardMap();
+
+			for (int row = 0; row < 8; row++) {		//create keyboard map table
+				ImGui::TableNextRow();
+				for (int column = 0; column < 3; column++) {
+					ImGui::TableSetColumnIndex(column);
+					if (column == 0) {
+						ImGui::Text(gbButtonStrings[row]);
+					}
+					else {
+						int index = row + (column - 1) * 8;
+						ImGui::PushID(index);	//avoid problems when two buttons have the same keyName
+						SDL_Keycode key = SDL_GetKeyFromScancode(map[index]);
+						const char* keyName = SDL_GetKeyName(key);
+						if (ImGui::Button(keyName)) {		//wants to change a key
+							_input->changingKeyboardMap(index);
+						}
+						ImGui::PopID();
+					}
+				}
+			}
+			ImGui::EndTable();
+		}
+		else if (settingTabs == 3) {		//window settings
+
+			if (ImGui::BeginCombo("Window Size", windowSizeSelectedItem))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(windowSizeItems); n++)
+				{
+					bool is_selected = (windowSizeSelectedItem == windowSizeItems[n]);
+					if (ImGui::Selectable(windowSizeItems[n], is_selected)) {
+						windowSizeSelectedItem = (char*)windowSizeItems[n];	//set new selected item
+						this->ResizeWindow(160 * (n + 2), 144 * (n + 2));
+					}
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+		}
+		ImGui::SetCursorPos(ImVec2(0, windowHeight - 20)); // Move cursor on needed positions
+		if (ImGui::Button("Save and Close")) {
+			_input->saveKeyboardMap();
+			settingsMenu = false;
+		}
+		ImGui::End();
+	}
+	renderMessage(elapsed);
+	ImGui::EndFrame();
 }
 
 void Renderer::renderBg(std::vector<scanlineStat> &frameRect) {
@@ -550,46 +555,50 @@ void Renderer::renderSpritesWithPriority(std::vector<scanlineStat>& frameRect, i
 	for (int i = 0; i < 40; i++) sprites[i] = &((sprite_attribute*)oamCopy)[i];
 	sort(sprites, 40);
 
-	if (!(ioCopy->LCDC & 0x4)) {		//8x8 tiles
-		for (int i = 39; i >= 0; --i) {
-			sprite_attribute& sprite = *sprites[i];
-			if (sprite.y_pos <= 8 || sprite.y_pos >= 160 || //invalid sprite position
-				sprite.x_pos == 0 || sprite.x_pos >= 168 ||
-				sprite.priority != priority)
-				continue;
+	if ((ioCopy->LCDC & 0x4))	
+		goto tiles_8x16;
 
-			//check whether the sprites are visible
-			bool show = false;
-			int yPos = sprite.y_pos - 16;
-			int xPos = sprite.x_pos - 8;
-			for (int i = 0; i < frameRect.size(); i++) {
-				if ((yPos >= frameRect[i].firstScanline &&
-					yPos <= frameRect[i].firstScanline + frameRect[i].height) ||
-					(yPos < 0 && yPos > -8)) {
-					if (frameRect[i].lcdc & 0x2)
-						show = true;
-					break;
-				}
+	//8x8 tiles
+	for (int i = 39; i >= 0; --i) {
+		sprite_attribute& sprite = *sprites[i];
+		if (sprite.y_pos <= 8 || sprite.y_pos >= 160 || //invalid sprite position
+			sprite.x_pos == 0 || sprite.x_pos >= 168 ||
+			sprite.priority != priority)
+			continue;
+
+		//check whether the sprites are visible
+		bool show = false;
+		int yPos = sprite.y_pos - 16;
+		int xPos = sprite.x_pos - 8;
+		for (int i = 0; i < frameRect.size(); i++) {
+			if ((yPos >= frameRect[i].firstScanline &&
+				yPos <= frameRect[i].firstScanline + frameRect[i].height) ||
+				(yPos < 0 && yPos > -8)) {
+				if (frameRect[i].lcdc & 0x2)
+					show = true;
+				break;
 			}
-			if (!show) continue;
-
-			//draw
-			uint8_t tileNum = sprite.tile;
-
-			SDL_Rect sourceRect = { (tileNum % 16) * 8, (tileNum / 16) * 8, 8, 8 };
-			SDL_Rect destRect = { xPos * renderScaleX, yPos * renderScaleY,
-				8 * renderScaleX, 8 * renderScaleY };
-			SDL_RendererFlip flip = (SDL_RendererFlip)(((int)SDL_FLIP_HORIZONTAL * sprite.x_flip) |
-				((int)SDL_FLIP_VERTICAL * sprite.y_flip));
-
-			//use the correct tile map
-			SDL_Texture* obj_tiles = sprite.palette == 0 ? obj_tiles_1 : obj_tiles_2;
-			SDL_RenderCopyEx(_renderer, obj_tiles, &sourceRect, &destRect, 0, nullptr, flip);
 		}
-		return;
+		if (!show) continue;
+
+		//draw
+		uint8_t tileNum = sprite.tile;
+
+		SDL_Rect sourceRect = { (tileNum % 16) * 8, (tileNum / 16) * 8, 8, 8 };
+		SDL_Rect destRect = { xPos * renderScaleX, yPos * renderScaleY,
+			8 * renderScaleX, 8 * renderScaleY };
+		SDL_RendererFlip flip = (SDL_RendererFlip)(((int)SDL_FLIP_HORIZONTAL * sprite.x_flip) |
+			((int)SDL_FLIP_VERTICAL * sprite.y_flip));
+
+		//use the correct tile map
+		SDL_Texture* obj_tiles = sprite.palette == 0 ? obj_tiles_1 : obj_tiles_2;
+		SDL_RenderCopyEx(_renderer, obj_tiles, &sourceRect, &destRect, 0, nullptr, flip);
 	}
+	return;
+
 
 	//8x16 tiles
+	tiles_8x16:
 	for (int i = 39; i >= 0; --i) {
 		sprite_attribute& sprite = *sprites[i];
 		if (sprite.y_pos == 0 || sprite.y_pos >= 160 || //invalid sprite position

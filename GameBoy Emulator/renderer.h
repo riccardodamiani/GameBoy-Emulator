@@ -47,7 +47,8 @@ private:
 	void renderSpritesWithPriority(std::vector<scanlineStat> &frameRect, int priority);
 	void renderBg(std::vector<scanlineStat>& frameRect);
 	void renderWindow(std::vector<scanlineStat>& frameRect);
-	void renderMessage();
+	void renderMessage(float elapsed);
+	void imguiFrame(float elapsed);
 
 	void _debug_renderBgMap();
 	void _debug_renderWindowMap();

@@ -126,7 +126,7 @@ void ch3_callback(int channel, void* stream, int len, void* udata) {
         Mix_Pause(channel);
         return;
     }
-
+    
     for (int i = 0; i < len / 512; i++) {
         for (int j = 0; j < 256; j++) {
             float period = SAMPLE_RATE / data.frequency;
