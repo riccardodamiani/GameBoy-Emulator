@@ -190,7 +190,7 @@ void Cartridge::verifyHeader(int fileSize) {
 		fatal(FATAL_UNSUPPORTED_MBC_CHIP, __func__, "MBC code out of bound");
 	}
 	bool supported_mbc = false;
-	for (int i = 0; i < 0x23; i++) {
+	for (int i = 0; i < sizeof(supported_cardridge_types)/sizeof(char*); i++) {
 		if (strcmp(supported_cardridge_types[i], cardridge_type_info[header->cartridgeType]) == 0) {
 			supported_mbc = true;
 			break;
