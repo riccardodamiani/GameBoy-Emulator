@@ -6,6 +6,7 @@
 #include "sound.h"
 #include "input.h"
 #include "globals.h"
+#include "memory.h"
 
 #include <iostream>
 #include <fstream>
@@ -19,61 +20,22 @@ GameBoy::GameBoy(){
 
 }
 
-bool GameBoy::Init(const char* rom_filename) {
+bool GameBoy::Init() {
 	
 	clockSpeed = 1;
-	this->vram = (uint8_t*)(this->gb_mem + 0x8000);
-	this->wram = (uint8_t*)(this->gb_mem + 0xc000);
-	this->io_map = (IO_map*)(this->gb_mem + 0xff00);
-	this->oam = this->gb_mem + 0xfe00;
-
-	videoMode = 0;
 	time_clock = 0;
 	joypadStatus = {};
-	_saveState = false;
-
-	std::ifstream bootrom_file("bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
-
-	if (!bootrom_file.is_open())
-		fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
-
-	std::streampos size = bootrom_file.tellg();
-	if (size != 256)
-		fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
-
-	bootrom_file.seekg(0, std::ios::beg);
-	bootrom_file.read((char*)this->boot_rom, 256);
-	bootrom_file.close();
 
 	//init mem
+	memset(frameStat, 0, sizeof(frameStat));
 	memset(&this->registers, 0, sizeof(this->registers));
 	this->registers.pc = 0;
-	memset(this->gb_mem, 0, sizeof(this->gb_mem));
-	memset(frameStat, 0, sizeof(frameStat));
 
 	//init joypad stuff
-	this->registers.joyp_stat = 1;
-	io_map->JOYP = 0xff;
-
-	this->cart = new Cartridge(rom_filename);
+	this->registers.joyp_stat = 1;	
 	this->sound = new Sound();
 
 	return true;
-}
-
-void GameBoy::_internal_saveState() {
-	this->saveMutex.lock();
-	if (this->_saveState) {
-		cart->saveState();
-		_saveState = false;
-	}
-	this->saveMutex.unlock();
-}
-
-void GameBoy::saveState() {
-	this->saveMutex.lock();
-	_saveState = true;
-	this->saveMutex.unlock();
 }
 
 bool* GameBoy::getSoundEnable() {
@@ -82,6 +44,7 @@ bool* GameBoy::getSoundEnable() {
 
 void GameBoy::screenUpdate(int clocks) {
 	uint8_t stat_s = 0;
+	IO_map* io_map = _memory->getIOMap();
 
 	if ((io_map->LCDC & 0x80) == 0) { 	//the lcd is off
 		this->registers.sl_cnt = 0;
@@ -162,23 +125,12 @@ void GameBoy::screenUpdate(int clocks) {
 
 	//stat interrupt
 	if (this->registers.stat_signal == 0 && stat_s == 1) {
-		this->io_map->IF |= 0x2;
+		io_map->IF |= 0x2;
 	}
 	this->registers.stat_signal = stat_s;
 
 }
 
-uint8_t* GameBoy::getVram(void) {
-	return this->vram;
-}
-
-IO_map* GameBoy::getIOMap(void){
-	return this->io_map;
-}
-
-uint8_t* GameBoy::getOam() {
-	return this->oam;
-}
 
 void GameBoy::setClockSpeed(float multiplier) {
 	clockSpeed = multiplier;
@@ -187,7 +139,8 @@ void GameBoy::setClockSpeed(float multiplier) {
 int GameBoy::nextInstruction() {
 
 	int cycles = 0;
-	
+	IO_map* io_map = _memory->getIOMap();
+
 	if (!registers.stopped) {
 		cycles = handleInterrupt();
 	}
@@ -209,7 +162,7 @@ int GameBoy::nextInstruction() {
 		handleSerial();
 		handleTimer(cycles);
 		screenUpdate(cycles * 4);
-		sound->UpdateSound(this->io_map);
+		sound->UpdateSound(io_map);
 	}
 
 	//limits gameboy speed
@@ -217,7 +170,6 @@ int GameBoy::nextInstruction() {
 	if (time_clock >= 4194*clockSpeed) {
 		time_clock = 0;
 		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms of gameboy time
-		_internal_saveState();
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = endTime - realTimePoint;
@@ -231,6 +183,7 @@ int GameBoy::nextInstruction() {
 
 
 void GameBoy::handleTimer(int cycles) {
+	IO_map* io_map = _memory->getIOMap();
 
 	if (!(io_map->TAC & 0x4))
 		return;
@@ -250,6 +203,7 @@ void GameBoy::handleTimer(int cycles) {
 }
 
 void GameBoy::handleJoypad(void) {
+	IO_map* io_map = _memory->getIOMap();
 
 	if (registers.stopped) {
 		if (joypadStatus.a || joypadStatus.b || joypadStatus.select || joypadStatus.start ||
@@ -288,6 +242,7 @@ void GameBoy::handleJoypad(void) {
 }
 
 int GameBoy::handleInterrupt(void) {
+	IO_map* io_map = _memory->getIOMap();
 
 	if (this->registers.IME_CC > 0) {
 		if (--this->registers.IME_CC == 0) {
@@ -295,20 +250,20 @@ int GameBoy::handleInterrupt(void) {
 		}
 	}
 
-	if (this->registers.IME && (this->io_map->IF & this->io_map->IE)) {
+	if (this->registers.IME && (io_map->IF & io_map->IE)) {
 
 		for (int i = 0; i < 5; i++) {
-			if ((this->io_map->IF & (0x1 << i)) && (this->io_map->IE & (0x1 << i))) {
+			if ((io_map->IF & (0x1 << i)) && (io_map->IE & (0x1 << i))) {
 				this->registers.halted = 0;
 
 				uint16_t interrupt_vect_addr = 0x40 + 0x8 * i;
 				//PUSH PC
-				write(this->registers.sp - 1, (this->registers.pc>>8) & 0xff);
-				write(this->registers.sp - 2, this->registers.pc & 0xff);
+				_memory->write(this->registers.sp - 1, (this->registers.pc>>8) & 0xff);
+				_memory->write(this->registers.sp - 2, this->registers.pc & 0xff);
 				this->registers.sp -= 2;
 
 				this->registers.IME = 0;		//disable interrupt
-				this->io_map->IF &= ~(0x1 << i);	//clear interrupt flag
+				io_map->IF &= ~(0x1 << i);	//clear interrupt flag
 				this->registers.pc = interrupt_vect_addr;		//jump to the corrisponding interrupt vector
 				return 5;
 			}
@@ -338,7 +293,7 @@ int GameBoy::execute() {
 	if (pc == 0x1e7e) {
 		pc = pc;
 	}*/
-	uint8_t opcode = read(pc);
+	uint8_t opcode = _memory->read(pc);
 
 	switch (opcode) {
 	case 0x0:		//NOP
@@ -348,15 +303,15 @@ int GameBoy::execute() {
 	}
 	case 0x1:		//LD BD, d16
 	{
-		this->registers.c = read(pc + 1);
-		this->registers.b = read(pc + 2);
+		this->registers.c = _memory->read(pc + 1);
+		this->registers.b = _memory->read(pc + 2);
 		this->registers.pc += 3;
 		return 3;
 	}
 	case 0x02:		//LD (BC), A
 	{
 		uint16_t bc = (this->registers.b << 8) | this->registers.c;
-		write(bc, this->registers.a);
+		_memory->write(bc, this->registers.a);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -393,7 +348,7 @@ int GameBoy::execute() {
 	}
 	case 0x6:		//LD B, d8
 	{
-		this->registers.b = read(pc + 1);
+		this->registers.b = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -411,9 +366,9 @@ int GameBoy::execute() {
 	}
 	case 0x08:		//LD (a16), SP
 	{
-		uint16_t gb_addr = (read(pc + 1) | read(pc + 2) << 8);
-		write(gb_addr, this->registers.sp & 0xff);
-		write(gb_addr + 1, (this->registers.sp >> 8) & 0xff);
+		uint16_t gb_addr = (_memory->read(pc + 1) | _memory->read(pc + 2) << 8);
+		_memory->write(gb_addr, this->registers.sp & 0xff);
+		_memory->write(gb_addr + 1, (this->registers.sp >> 8) & 0xff);
 		this->registers.pc += 3;
 		return 5;
 	}
@@ -438,7 +393,7 @@ int GameBoy::execute() {
 	case 0xa:		//LD A, (BC)
 	{
 		uint16_t bc = (this->registers.b << 8) | this->registers.c;
-		this->registers.a = read(bc);
+		this->registers.a = _memory->read(bc);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -475,7 +430,7 @@ int GameBoy::execute() {
 	}
 	case 0xe:	//LD C, d8
 	{
-		this->registers.c = read(pc + 1);
+		this->registers.c = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -501,15 +456,15 @@ int GameBoy::execute() {
 	}
 	case 0x11:		//LD DE, d16
 	{
-		this->registers.e = read(pc + 1);
-		this->registers.d = read(pc + 2);
+		this->registers.e = _memory->read(pc + 1);
+		this->registers.d = _memory->read(pc + 2);
 		this->registers.pc += 3;
 		return 3;
 	}
 	case 0x12:		//LD (DE), A
 	{
 		uint16_t de = (this->registers.d << 8) | this->registers.e;
-		write(de, this->registers.a);
+		_memory->write(de, this->registers.a);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -546,7 +501,7 @@ int GameBoy::execute() {
 	}
 	case 0x16:		//LD D, d8
 	{
-		this->registers.d = read(pc + 1);
+		this->registers.d = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -565,7 +520,7 @@ int GameBoy::execute() {
 	}
 	case 0x18:		//JR d8
 	{
-		char jump = read(pc + 1);
+		char jump = _memory->read(pc + 1);
 		this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 		this->registers.pc += 2;
 		return 2;
@@ -591,7 +546,7 @@ int GameBoy::execute() {
 	case 0x1a:		//LD A, (DE)
 	{
 		uint16_t de = (this->registers.d << 8) | this->registers.e;
-		this->registers.a = read(de);
+		this->registers.a = _memory->read(de);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -629,7 +584,7 @@ int GameBoy::execute() {
 	}
 	case 0x1e:		//LD E, d8
 	{
-		this->registers.e = read(pc + 1);
+		this->registers.e = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -648,7 +603,7 @@ int GameBoy::execute() {
 	}
 	case 0x20:		//JR NZ, d8
 	{
-		char jump = read(pc + 1);
+		char jump = _memory->read(pc + 1);
 		if (!this->registers.flag.z) {
 			this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 		}
@@ -658,15 +613,15 @@ int GameBoy::execute() {
 
 	case 0x21:		//LD HL, d16
 	{
-		this->registers.l = read(pc + 1);
-		this->registers.h = read(pc + 2);
+		this->registers.l = _memory->read(pc + 1);
+		this->registers.h = _memory->read(pc + 2);
 		this->registers.pc += 3;
 		return 3;
 	}
 	case 0x22:		//LD (HL+), A
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.a);
+		_memory->write(hl, this->registers.a);
 		hl++;
 		this->registers.h = (hl >> 8) & 0xff;
 		this->registers.l = hl & 0xff;
@@ -706,7 +661,7 @@ int GameBoy::execute() {
 	}
 	case 0x26:		//LD H, d8
 	{
-		this->registers.h = read(pc + 1);
+		this->registers.h = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -754,7 +709,7 @@ int GameBoy::execute() {
 	}
 	case 0x28:		//JR Z, d8
 	{
-		char jump = read(pc + 1);
+		char jump = _memory->read(pc + 1);
 		if (this->registers.flag.z) {
 			this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 		}
@@ -779,7 +734,7 @@ int GameBoy::execute() {
 	case 0x2a:		//LD A, (HL+)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.a = read(hl);
+		this->registers.a = _memory->read(hl);
 		hl++;
 		this->registers.h = (hl >> 8) & 0xff;
 		this->registers.l = hl & 0xff;
@@ -819,7 +774,7 @@ int GameBoy::execute() {
 	}
 	case 0x2e:		//LD L, d8
 	{
-		this->registers.l = read(pc + 1);
+		this->registers.l = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -833,7 +788,7 @@ int GameBoy::execute() {
 	}
 	case 0x30:		//JR NC d8
 	{
-		char jump = read(pc + 1);
+		char jump = _memory->read(pc + 1);
 		if (!this->registers.flag.c) {
 			this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 			this->registers.pc += 2;
@@ -844,14 +799,14 @@ int GameBoy::execute() {
 	}
 	case 0x31:		//LD SP, d16
 	{
-		this->registers.sp = (read(pc + 1) | read(pc + 2) << 8);
+		this->registers.sp = (_memory->read(pc + 1) | _memory->read(pc + 2) << 8);
 		this->registers.pc += 3;
 		return 3;
 	}
 	case 0x32:		//LD (HL-), A
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.a);
+		_memory->write(hl, this->registers.a);
 		hl--;
 		this->registers.h = (hl >> 8) & 0xff;
 		this->registers.l = hl & 0xff;
@@ -867,13 +822,13 @@ int GameBoy::execute() {
 	case 0x34:		//INC (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 
 		this->registers.flag.h = ((n & 0xf) == 0xf);
 		n++;
 		this->registers.flag.z = (n == 0);
 		this->registers.flag.n = 0;
-		write(hl, n);
+		_memory->write(hl, n);
 
 		this->registers.pc += 1;
 		return 3;
@@ -881,13 +836,13 @@ int GameBoy::execute() {
 	case 0x35:		//DEC (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 
 		this->registers.flag.h = ((n & 0xf) == 0);	//needs a half carry?
 		n--;
 		this->registers.flag.z = (n == 0);
 		this->registers.flag.n = 1;
-		write(hl, n);
+		_memory->write(hl, n);
 
 		this->registers.pc += 1;
 		return 3;
@@ -895,8 +850,8 @@ int GameBoy::execute() {
 	case 0x36:		//LD (HL), d8
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(pc + 1);
-		write(hl, n);
+		uint8_t n = _memory->read(pc + 1);
+		_memory->write(hl, n);
 
 		this->registers.pc += 2;
 		return 3;
@@ -911,7 +866,7 @@ int GameBoy::execute() {
 	}
 	case 0x38:		//JR C d8
 	{
-		char jump = read(pc + 1);
+		char jump = _memory->read(pc + 1);
 		if (this->registers.flag.c) {
 			this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 			this->registers.pc += 2;
@@ -938,7 +893,7 @@ int GameBoy::execute() {
 	case 0x3a:		//LD A, (HL-)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.a = read(hl);
+		this->registers.a = _memory->read(hl);
 		hl--;
 		this->registers.h = (hl >> 8) & 0xff;
 		this->registers.l = hl & 0xff;
@@ -975,7 +930,7 @@ int GameBoy::execute() {
 	}
 	case 0x3e:		//LD A, d8
 	{
-		this->registers.a = read(pc + 1);
+		this->registers.a = _memory->read(pc + 1);
 		this->registers.pc += 2;
 		return 2;
 	}
@@ -1014,7 +969,7 @@ int GameBoy::execute() {
 	case 0x46:		//LD B, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.b = read(hl);
+		this->registers.b = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1049,7 +1004,7 @@ int GameBoy::execute() {
 	case 0x4e:		//LD C, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.c = read(hl);
+		this->registers.c = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1085,7 +1040,7 @@ int GameBoy::execute() {
 	case 0x56:		//LD D, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.d = read(hl);
+		this->registers.d = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1121,7 +1076,7 @@ int GameBoy::execute() {
 	case 0x5e:		//LD E, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.e = read(hl);
+		this->registers.e = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1156,7 +1111,7 @@ int GameBoy::execute() {
 	case 0x66:		//LD H, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.h = read(hl);
+		this->registers.h = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1191,7 +1146,7 @@ int GameBoy::execute() {
 	case 0x6e:		//LD L, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.l = read(hl);
+		this->registers.l = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1202,7 +1157,7 @@ int GameBoy::execute() {
 	case 0x70:		//LD (HL), B
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.b);
+		_memory->write(hl, this->registers.b);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1210,7 +1165,7 @@ int GameBoy::execute() {
 	case 0x71:		//LD (HL), C
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.c);
+		_memory->write(hl, this->registers.c);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1218,7 +1173,7 @@ int GameBoy::execute() {
 	case 0x72:		//LD (HL), D
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.d);
+		_memory->write(hl, this->registers.d);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1226,7 +1181,7 @@ int GameBoy::execute() {
 	case 0x73:		//LD (HL), E
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.e);
+		_memory->write(hl, this->registers.e);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1234,7 +1189,7 @@ int GameBoy::execute() {
 	case 0x74:		//LD (HL), H
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.h);
+		_memory->write(hl, this->registers.h);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1242,7 +1197,7 @@ int GameBoy::execute() {
 	case 0x75:		//LD (HL), L
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.l);
+		_memory->write(hl, this->registers.l);
 
 		this->registers.pc += 1;
 		return 2;
@@ -1258,7 +1213,7 @@ int GameBoy::execute() {
 	case 0x77:		//LD (HL), A
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		write(hl, this->registers.a);
+		_memory->write(hl, this->registers.a);
 		
 		this->registers.pc += 1;
 		return 2;
@@ -1290,7 +1245,7 @@ int GameBoy::execute() {
 	case 0x7e:		//LD A, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		this->registers.a = read(hl);
+		this->registers.a = _memory->read(hl);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1325,7 +1280,7 @@ int GameBoy::execute() {
 	case 0x86:		//ADD A, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		ADD_n(n);
 		return 2;
 	}
@@ -1360,7 +1315,7 @@ int GameBoy::execute() {
 	case 0x8e:		//ADC A, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		ADC_A_n(n);
 		return 2;
 	}
@@ -1395,7 +1350,7 @@ int GameBoy::execute() {
 	case 0x96:		//SUB (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SUB_n(n);
 		return 2;
 	}
@@ -1430,7 +1385,7 @@ int GameBoy::execute() {
 	case 0x9e:		//SBC A, (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SBC_A_n(n);
 		return 2;
 	}
@@ -1465,7 +1420,7 @@ int GameBoy::execute() {
 	case 0xa6:		//AND (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		AND_n(n);
 		return 2;
 	}
@@ -1500,7 +1455,7 @@ int GameBoy::execute() {
 	case 0xae:		//XOR (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		XOR_n(n);
 		return 2;
 	}
@@ -1535,7 +1490,7 @@ int GameBoy::execute() {
 	case 0xb6:		//OR (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		OR_n(n);
 		return 2;
 	}
@@ -1570,7 +1525,7 @@ int GameBoy::execute() {
 	case 0xbe:		//CP (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 
 		CP_n(n);
 		return 2;
@@ -1582,7 +1537,7 @@ int GameBoy::execute() {
 	case 0xc0:		//RET NZ
 	{
 		if (!this->registers.flag.z) {
-			this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+			this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 			this->registers.sp += 2;
 			return 5;
 		}
@@ -1592,8 +1547,8 @@ int GameBoy::execute() {
 	}
 	case 0xc1:		//POP BC
 	{
-		this->registers.c = read(this->registers.sp);
-		this->registers.b = read(this->registers.sp + 1);
+		this->registers.c = _memory->read(this->registers.sp);
+		this->registers.b = _memory->read(this->registers.sp + 1);
 		this->registers.sp += 2;
 		this->registers.pc += 1;
 		return 3;
@@ -1601,7 +1556,7 @@ int GameBoy::execute() {
 	case 0xc2:		//JP NZ d16
 	{
 		if (!this->registers.flag.z) {
-			uint16_t addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 			this->registers.pc = addr;
 			return 4;
 		}
@@ -1610,7 +1565,7 @@ int GameBoy::execute() {
 	}
 	case 0xc3:		//JP d16
 	{
-		uint16_t addr = (read(pc + 1) | (read(pc + 2) << 8));
+		uint16_t addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 		this->registers.pc = addr;
 		//this->registers.pc += 3;
 		return 3;
@@ -1618,11 +1573,11 @@ int GameBoy::execute() {
 	case 0xc4:		//CALL NZ
 	{
 		if (!this->registers.flag.z) {
-			uint16_t jump_addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t jump_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 
 			uint16_t ret_addr = pc + 3;
-			write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-			write(this->registers.sp - 2, ret_addr & 0Xff);
+			_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+			_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 			this->registers.sp -= 2;
 			this->registers.pc = jump_addr;
@@ -1633,8 +1588,8 @@ int GameBoy::execute() {
 	}
 	case 0xc5:		//PUSH BC
 	{
-		write(this->registers.sp - 1, this->registers.b);
-		write(this->registers.sp - 2, this->registers.c);
+		_memory->write(this->registers.sp - 1, this->registers.b);
+		_memory->write(this->registers.sp - 2, this->registers.c);
 		this->registers.sp -= 2;
 		this->registers.pc += 1;
 		return 4;
@@ -1642,7 +1597,7 @@ int GameBoy::execute() {
 	
 	case 0xc6:		//ADD A, d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		ADD_n(n);
 		registers.pc += 1;
 		return 2;
@@ -1652,8 +1607,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x0;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1662,7 +1617,7 @@ int GameBoy::execute() {
 	case 0xc8:		//RET Z
 	{
 		if (this->registers.flag.z) {
-			this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+			this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 			this->registers.sp += 2;
 		}
 		else {
@@ -1673,14 +1628,14 @@ int GameBoy::execute() {
 	}
 	case 0xc9:		//RET
 	{
-		this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+		this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 		this->registers.sp += 2;
 		return 2;
 	}
 	case 0xca:		//JP Z d16
 	{
 		if (this->registers.flag.z) {
-			uint16_t addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 			this->registers.pc = addr;
 			return 4;
 		}
@@ -1695,11 +1650,11 @@ int GameBoy::execute() {
 	case 0xcc:		//CALL Z a16
 	{
 		if (this->registers.flag.z) {
-			uint16_t jump_addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t jump_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 
 			uint16_t ret_addr = pc + 3;
-			write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-			write(this->registers.sp - 2, ret_addr & 0Xff);
+			_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+			_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 			this->registers.sp -= 2;
 			this->registers.pc = jump_addr;
@@ -1710,11 +1665,11 @@ int GameBoy::execute() {
 	}
 	case 0xcd:		//CALL 
 	{
-		uint16_t jump_addr = (read(pc + 1) | (read(pc + 2) << 8));
+		uint16_t jump_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 
 		uint16_t ret_addr = pc + 3;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1722,7 +1677,7 @@ int GameBoy::execute() {
 	}
 	case 0xce:		//ADC A, d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		ADC_A_n(n);
 		this->registers.pc += 1;
 		return 2;
@@ -1732,8 +1687,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x8;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1742,7 +1697,7 @@ int GameBoy::execute() {
 	case 0xd0:		//RET NC
 	{
 		if (!this->registers.flag.c) {
-			this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+			this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 			this->registers.sp += 2;
 			return 5;
 		}
@@ -1752,8 +1707,8 @@ int GameBoy::execute() {
 	}
 	case 0xd1:		//POP DE
 	{
-		this->registers.e = read(this->registers.sp);
-		this->registers.d = read(this->registers.sp + 1);
+		this->registers.e = _memory->read(this->registers.sp);
+		this->registers.d = _memory->read(this->registers.sp + 1);
 		this->registers.sp += 2;
 		this->registers.pc += 1;
 		return 3;
@@ -1761,7 +1716,7 @@ int GameBoy::execute() {
 	case 0xd2:		//JP NC d16
 	{
 		if (!this->registers.flag.c) {
-			uint16_t addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 			this->registers.pc = addr;
 			return 4;
 		}
@@ -1775,11 +1730,11 @@ int GameBoy::execute() {
 	case 0xd4:		//CALL NC a16
 	{
 		if (!this->registers.flag.c) {
-			uint16_t jump_addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t jump_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 
 			uint16_t ret_addr = pc + 3;
-			write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-			write(this->registers.sp - 2, ret_addr & 0Xff);
+			_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+			_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 			this->registers.sp -= 2;
 			this->registers.pc = jump_addr;
@@ -1790,15 +1745,15 @@ int GameBoy::execute() {
 	}
 	case 0xd5:		//PUSH DE
 	{
-		write(this->registers.sp - 1, this->registers.d);
-		write(this->registers.sp - 2, this->registers.e);
+		_memory->write(this->registers.sp - 1, this->registers.d);
+		_memory->write(this->registers.sp - 2, this->registers.e);
 		this->registers.sp -= 2;
 		this->registers.pc += 1;
 		return 4;
 	}
 	case 0xd6:		//SUB d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		this->registers.flag.h = ((this->registers.a & 0xf) < (n & 0xf));
 		this->registers.flag.c = (this->registers.a < n);
 
@@ -1814,8 +1769,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x10;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1824,7 +1779,7 @@ int GameBoy::execute() {
 	case 0xd8:		//RET C
 	{
 		if (this->registers.flag.c) {
-			this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+			this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 			this->registers.sp += 2;
 			return 5;
 		}
@@ -1834,7 +1789,7 @@ int GameBoy::execute() {
 	}
 	case 0xd9:		//RETI
 	{
-		this->registers.pc = (read(this->registers.sp) | (read(this->registers.sp + 1) << 8));
+		this->registers.pc = (_memory->read(this->registers.sp) | (_memory->read(this->registers.sp + 1) << 8));
 		this->registers.sp += 2;
 		this->registers.IME = 1;
 		return 2;
@@ -1842,7 +1797,7 @@ int GameBoy::execute() {
 	case 0xda:		//JP C a16
 	{
 		if (this->registers.flag.c) {
-			uint16_t addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 			this->registers.pc = addr;
 			return 4;
 		}
@@ -1856,11 +1811,11 @@ int GameBoy::execute() {
 	case 0xdc:		//CALL C a16
 	{
 		if (this->registers.flag.c) {
-			uint16_t jump_addr = (read(pc + 1) | (read(pc + 2) << 8));
+			uint16_t jump_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 
 			uint16_t ret_addr = pc + 3;
-			write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-			write(this->registers.sp - 2, ret_addr & 0Xff);
+			_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+			_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 			this->registers.sp -= 2;
 			this->registers.pc = jump_addr;
@@ -1875,7 +1830,7 @@ int GameBoy::execute() {
 	}
 	case 0xde:		//SBC A, d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		SBC_A_n(n);
 		this->registers.pc += 1;
 		return 2;
@@ -1885,8 +1840,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x18;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1894,15 +1849,15 @@ int GameBoy::execute() {
 	}
 	case 0xe0:		//LDH (n), A
 	{
-		uint16_t gb_addr = 0xff00 + read(pc + 1);
-		write(gb_addr, this->registers.a);
+		uint16_t gb_addr = 0xff00 + _memory->read(pc + 1);
+		_memory->write(gb_addr, this->registers.a);
 		this->registers.pc += 2;
 		return 4;
 	}
 	case 0xe1:			//POP HL
 	{
-		this->registers.l = read(this->registers.sp);
-		this->registers.h = read(this->registers.sp + 1);
+		this->registers.l = _memory->read(this->registers.sp);
+		this->registers.h = _memory->read(this->registers.sp + 1);
 		this->registers.sp += 2;
 		this->registers.pc += 1;
 		return 3;
@@ -1910,7 +1865,7 @@ int GameBoy::execute() {
 	case 0xe2:		//LD (C), A
 	{
 		uint16_t gb_addr = 0xff00 + this->registers.c;
-		write(gb_addr, this->registers.a);
+		_memory->write(gb_addr, this->registers.a);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -1924,15 +1879,15 @@ int GameBoy::execute() {
 	}
 	case 0xe5:		//PUSH HL
 	{
-		write(this->registers.sp - 1, this->registers.h);
-		write(this->registers.sp - 2, this->registers.l);
+		_memory->write(this->registers.sp - 1, this->registers.h);
+		_memory->write(this->registers.sp - 2, this->registers.l);
 		this->registers.sp -= 2;
 		this->registers.pc += 1;
 		return 4;
 	}
 	case 0xe6:		//AND d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		AND_n(n);
 		this->registers.pc += 1;
 		return 2;
@@ -1942,8 +1897,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x20;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -1951,7 +1906,7 @@ int GameBoy::execute() {
 	}
 	case 0xe8:		//ADD SP, r8
 	{
-		char n = read(pc + 1);
+		char n = _memory->read(pc + 1);
 		registers.flag.h = ((registers.sp & 0xf) + (((uint8_t)n) & 0xf) > 0xf);
 		registers.flag.c = ((registers.sp & 0xff) + ((uint8_t)n) > 0xff);
 		registers.sp = (unsigned)((short)this->registers.sp + n);
@@ -1969,8 +1924,8 @@ int GameBoy::execute() {
 	}
 	case 0xea:		//LD (d16), A
 	{
-		uint16_t gb_addr = (read(pc + 1) | (read(pc + 2) << 8));
-		write(gb_addr, this->registers.a);
+		uint16_t gb_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
+		_memory->write(gb_addr, this->registers.a);
 		this->registers.pc += 3;
 		return 4;
 	}
@@ -1988,7 +1943,7 @@ int GameBoy::execute() {
 	}
 	case 0xee:		//XOR d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		XOR_n(n);
 		registers.pc += 1;
 		return 2;
@@ -1998,8 +1953,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x28;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -2007,15 +1962,15 @@ int GameBoy::execute() {
 	}
 	case 0xf0:		//LDH A, d8
 	{
-		uint16_t gb_addr = 0xff00 + read(pc + 1);
-		this->registers.a = read(gb_addr);
+		uint16_t gb_addr = 0xff00 + _memory->read(pc + 1);
+		this->registers.a = _memory->read(gb_addr);
 		this->registers.pc += 2;
 		return 3;
 	}
 	case 0xf1:		//POP AF
 	{
-		*((uint8_t*)&this->registers.flag) = read(this->registers.sp );
-		this->registers.a = read(this->registers.sp + 1);
+		*((uint8_t*)&this->registers.flag) = _memory->read(this->registers.sp );
+		this->registers.a = _memory->read(this->registers.sp + 1);
 
 		this->registers.sp += 2;
 		this->registers.pc += 1;
@@ -2024,7 +1979,7 @@ int GameBoy::execute() {
 	case 0xf2:		//LD A,(C)
 	{
 		uint16_t gb_addr = 0xff00 + this->registers.c;
-		this->registers.a = read(gb_addr);
+		this->registers.a = _memory->read(gb_addr);
 		this->registers.pc += 1;
 		return 2;
 	}
@@ -2042,15 +1997,15 @@ int GameBoy::execute() {
 	case 0xf5:		//PUSH AF
 	{
 		uint8_t flag = *((uint8_t*)&this->registers.flag);
-		write(this->registers.sp - 1, this->registers.a);
-		write(this->registers.sp - 2, flag);
+		_memory->write(this->registers.sp - 1, this->registers.a);
+		_memory->write(this->registers.sp - 2, flag);
 		this->registers.sp -= 2;
 		this->registers.pc += 1;
 		return 4;
 	}
 	case 0xf6:		//OR d8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		OR_n(n);
 		registers.pc += 1;
 		return 2;
@@ -2060,8 +2015,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x30;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -2069,7 +2024,7 @@ int GameBoy::execute() {
 	}
 	case 0xf8:		//LD HL, SP + r8
 	{
-		uint8_t n = read(pc + 1);
+		uint8_t n = _memory->read(pc + 1);
 		uint16_t hl = this->registers.sp + n;
 
 		this->registers.flag.z = 0;
@@ -2091,8 +2046,8 @@ int GameBoy::execute() {
 	}
 	case 0xfa:		//LD A, (d16)
 	{
-		uint16_t gb_addr = (read(pc + 1) | (read(pc + 2) << 8));
-		this->registers.a = read(gb_addr);
+		uint16_t gb_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
+		this->registers.a = _memory->read(gb_addr);
 		this->registers.pc += 3;
 		return 4;
 	}
@@ -2113,7 +2068,7 @@ int GameBoy::execute() {
 	}
 	case 0xfe:		//CP, d8
 	{
-		uint8_t d = read(pc + 1);
+		uint8_t d = _memory->read(pc + 1);
 		this->registers.flag.z = (this->registers.a == d);
 		this->registers.flag.n = 1;
 		this->registers.flag.h = ((this->registers.a & 0xf) < (d & 0xf));
@@ -2126,8 +2081,8 @@ int GameBoy::execute() {
 		uint16_t jump_addr = 0x38;
 
 		uint16_t ret_addr = pc + 1;
-		write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
-		write(this->registers.sp - 2, ret_addr & 0Xff);
+		_memory->write(this->registers.sp - 1, (ret_addr >> 8) & 0xff);
+		_memory->write(this->registers.sp - 2, ret_addr & 0Xff);
 
 		this->registers.sp -= 2;
 		this->registers.pc = jump_addr;
@@ -2144,7 +2099,7 @@ int GameBoy::execute() {
 
 int GameBoy::prefixed_execute() {
 	uint16_t pc = this->registers.pc;
-	uint8_t opcode = read(pc);
+	uint8_t opcode = _memory->read(pc);
 
 	switch (opcode) {
 	case 0x00:		//RLC B
@@ -2174,9 +2129,9 @@ int GameBoy::prefixed_execute() {
 	case 0x06:		//RLC (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		RLC_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x07:		//RLC A
@@ -2210,9 +2165,9 @@ int GameBoy::prefixed_execute() {
 	case 0x0e:		//RRC (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		RRC_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0xf:		//RRC A
@@ -2246,9 +2201,9 @@ int GameBoy::prefixed_execute() {
 	case 0x16:		//RL (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		RL_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x17:		//RL A
@@ -2282,9 +2237,9 @@ int GameBoy::prefixed_execute() {
 	case 0x1e:		//RR (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		RR_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x1f:		//RR A
@@ -2319,9 +2274,9 @@ int GameBoy::prefixed_execute() {
 	case 0x26:		//SLA (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SLA_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x27:		//SLA A
@@ -2355,9 +2310,9 @@ int GameBoy::prefixed_execute() {
 	case 0x2e:		//SRA (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SRA_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x2f:		//SRA A
@@ -2391,9 +2346,9 @@ int GameBoy::prefixed_execute() {
 	case 0x36:		//SWAP (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SWAP_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x37:		//SWAP A
@@ -2427,9 +2382,9 @@ int GameBoy::prefixed_execute() {
 	case 0x3e:		//SRL (HL)
 	{
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		SRL_n(n);
-		write(hl, n);
+		_memory->write(hl, n);
 		return 4;
 	}
 	case 0x3f:		//SRL A
@@ -2502,7 +2457,7 @@ int GameBoy::prefixed_execute() {
 	{
 		uint8_t bit = (opcode - 0x46) / 8;
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		this->registers.flag.z = ((n & (0x1 << bit)) == 0);
 		this->registers.flag.n = 0;
 		this->registers.flag.h = 1;
@@ -2572,9 +2527,9 @@ int GameBoy::prefixed_execute() {
 	{
 		uint8_t bit = (opcode - 0x86) / 8;
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t n = read(hl);
+		uint8_t n = _memory->read(hl);
 		n &= ~(0x1 << bit);
-		write(hl, n);
+		_memory->write(hl, n);
 		this->registers.pc += 1;
 		return 4;
 	}
@@ -2639,9 +2594,9 @@ int GameBoy::prefixed_execute() {
 	{
 		uint8_t bit = (opcode - 0xc6) / 8;
 		uint16_t hl = (this->registers.h << 8) | this->registers.l;
-		uint8_t d = read(hl);
+		uint8_t d = _memory->read(hl);
 		d |= (0x1 << bit);
-		write(hl, d);
+		_memory->write(hl, d);
 		this->registers.pc += 1;
 		return 4;
 	}
@@ -2861,59 +2816,3 @@ int GameBoy::ADD_n(uint8_t& reg) {
 	return 1;
 }
 
-uint8_t* GameBoy::translateAddr(uint16_t addr) {
-	if (this->io_map->BRC == 0 && addr < 0x100) {		//intercept accesses to 0x0000 - 0x00ff (boot rom)
-		return (uint8_t*)(addr + this->boot_rom);
-	}
-
-	return (uint8_t*)(addr + this->gb_mem);
-}
-
-
-//translate the gameboy address into a real memory address and read a byte
-uint8_t GameBoy::read(uint16_t gb_address) {
-
-	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//bootstrap rom
-		return this->boot_rom[gb_address];
-	}
-
-	if ((gb_address >= 0 && gb_address <= 0x7fff) || (gb_address >= 0xa000 && gb_address <= 0xbfff)) {		//cartridge address
-		return this->cart->read(gb_address);
-	}
-
-	return this->gb_mem[gb_address];
-}
-
-//translate the gameboy address into a real memory address and write a byte
-void GameBoy::write(uint16_t gb_address, uint8_t value) {
-
-	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//bootstrap rom
-		return;
-	}
-
-	if ((gb_address >= 0 && gb_address <= 0x7fff) || (gb_address >= 0xa000 && gb_address <= 0xbfff)) {		//cartridge address
-		this->cart->write(gb_address, value);
-		return;
-	}
-
-	//writing any value to the divider register resets it to 0
-	if (gb_address == 0xff04) value = 0;
-	if (gb_address == 0xff1e) 
-		value = value;
-
-	this->gb_mem[gb_address] = value;
-
-	if (gb_address == 0xff46)
-		oam_dma_copy();
-
-}
-
-//copy the memory to oam region instantly
-void GameBoy::oam_dma_copy(void) {
-
-	uint16_t src_addr = gb_mem[0xff46] << 8;
-	uint16_t dst_addr = 0xfe00;		//always OAM
-	for (int i = 0; i < 160; i++) {
-		write(dst_addr++, read(src_addr++));
-	}
-}

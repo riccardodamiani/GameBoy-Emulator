@@ -57,6 +57,12 @@
     <ClCompile Include="imgui\imgui_widgets.cpp">
       <Filter>Imgui</Filter>
     </ClCompile>
+    <ClCompile Include="ppu.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+    <ClCompile Include="memory.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gameboy.h">
@@ -81,6 +87,12 @@
       <Filter>File di risorse</Filter>
     </ClInclude>
     <ClInclude Include="globals.h">
+      <Filter>File di risorse</Filter>
+    </ClInclude>
+    <ClInclude Include="ppu.h">
+      <Filter>File di risorse</Filter>
+    </ClInclude>
+    <ClInclude Include="memory.h">
       <Filter>File di risorse</Filter>
     </ClInclude>
   </ItemGroup>

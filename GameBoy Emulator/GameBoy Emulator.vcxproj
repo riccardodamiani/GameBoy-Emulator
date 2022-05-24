@@ -164,6 +164,8 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="input.cpp" />
+    <ClCompile Include="memory.cpp" />
+    <ClCompile Include="ppu.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="sound.cpp" />
   </ItemGroup>
@@ -173,6 +175,8 @@
     <ClInclude Include="gameboy.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="input.h" />
+    <ClInclude Include="memory.h" />
+    <ClInclude Include="ppu.h" />
     <ClInclude Include="sound.h" />
     <ClInclude Include="structures.h" />
     <ClInclude Include="renderer.h" />

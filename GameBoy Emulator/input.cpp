@@ -2,6 +2,8 @@
 #include "structures.h"
 #include "globals.h"
 #include "gameboy.h"
+#include "memory.h"
+
 #include <SDL.h>
 #include <imgui.h>
 #include <imgui_sdl.h>
@@ -74,7 +76,7 @@ void Input::beginNewFrame() {
 	jp_mutex.unlock();
 
 	if (wasKeyReleased(SDL_SCANCODE_F3)) {
-		_gameboy->saveState();
+		_memory->saveCartridgeState();
 	}
 
 }

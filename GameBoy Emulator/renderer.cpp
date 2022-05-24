@@ -6,6 +6,7 @@
 #include "globals.h"
 #include "sound.h"
 #include "input.h"
+#include "memory.h"
 
 #include <SDL.h>
 #include <thread>
@@ -43,9 +44,9 @@ void Renderer::Init(int width, int height) {
 	windowSizeSelectedItem = (char*)windowSizeItems[2];
 	gameSpeedSelectedItem = (char*)gameSpeedItems[2];
 
-	this->vram = _gameboy->getVram();
-	this->io = _gameboy->getIOMap();
-	this->oam = _gameboy->getOam();
+	this->vram = _memory->getVram();
+	this->io = _memory->getIOMap();
+	this->oam = _memory->getOam();
 
 	ioCopy = (IO_map*)calloc(256, 1);
 	ioTemp = (IO_map*)calloc(256, 1);
@@ -234,7 +235,7 @@ void Renderer::imguiFrame(float elapsed) {
 				}
 				if (ImGui::MenuItem("Save state", "F3"))
 				{
-					_gameboy->saveState();
+					_memory->saveCartridgeState();
 				}
 				ImGui::EndMenu();
 			}

@@ -9,6 +9,7 @@
 #include "renderer.h"
 #include "sound.h"
 #include "input.h"
+#include "memory.h"
 #include "globals.h"
 
 void gameboyRoutine(void) {
@@ -41,7 +42,7 @@ int main(int argc, char** argv)
 
     std::string filename;
 #ifdef _DEBUG
-    filename = "..\\..\\games\\Super Mario Land (World).gb";
+    filename = "..\\..\\games\\Pokemon Red (UE) [S][!].gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";
@@ -50,8 +51,9 @@ int main(int argc, char** argv)
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 #endif 
 
+    _memory->Init(filename.c_str());
     _input->Init();
-    _gameboy->Init(filename.c_str());
+    _gameboy->Init();
     _renderer->Init(160 * 4, 144 * 4);
 
     std::thread t1(gameboyRoutine);
