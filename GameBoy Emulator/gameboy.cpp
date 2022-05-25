@@ -148,46 +148,34 @@ void GameBoy::runFor(int cycles) {
 
 int GameBoy::nextInstruction() {
 
-	int cycles = 0;
+	int m_cycles = 0;
 	IO_map* io_map = _memory->getIOMap();
 
 	if (!registers.stopped) {
-		cycles = handleInterrupt();
+		m_cycles = handleInterrupt();
 	}
 
 	if (!registers.halted && !registers.stopped) {
-		cycles += this->execute();
+		m_cycles += this->execute();
 
 		//update divider register at a rate of 16384Hz 
-		registers.div_cnt += cycles * 4;
+		registers.div_cnt += m_cycles * 4;
 		if (registers.div_cnt >= 256) {
 			registers.div_cnt -= 256;
 			io_map->DIV++;
 		}
 	}
-	else cycles += 4;		//lcd and the timer still need the clock to work in halt mode
+	else m_cycles += 1;		//lcd and the timer still need the clock to work in halt mode
 
 	handleJoypad();
 	if (!registers.stopped) {
 		handleSerial();
-		handleTimer(cycles);
-		_ppu->drawScanline(cycles);
+		handleTimer(m_cycles);
+		_ppu->drawScanline(m_cycles*4);
 		sound->UpdateSound(io_map);
 	}
 
-	//limits gameboy speed
-	/*time_clock += cycles * 4;
-	if (time_clock >= 4194*clockSpeed) {
-		time_clock = 0;
-		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms of gameboy time
-		//_gameboy->vSync->wait();		//wait for graphics sync
-		auto now = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed = now - realTimePoint;
-		double elapsedTime = elapsed.count();
-		realTimePoint = now;
-		std::this_thread::sleep_for(std::chrono::microseconds((long long)(0.001 - elapsedTime)*100000));
-	}*/
-	return cycles;
+	return m_cycles *4;
 }
 
 

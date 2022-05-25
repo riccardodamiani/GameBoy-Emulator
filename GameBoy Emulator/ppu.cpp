@@ -53,7 +53,6 @@ void Ppu::drawScanline(int clk_cycles){
 			io->IF |= 0x1;
 		}
 		if (io->LY >= 154) {
-			//_gameboy->vSync->wait();		//wait for graphics sync
 			io->LY = 0;
 			bufferMutex.lock();
 			activeBuffer = !activeBuffer;
