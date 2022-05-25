@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 
     std::string filename;
 #ifdef _DEBUG
-    filename = "..\\..\\games\\Pokemon Red (UE) [S][!].gb";
+    filename = "..\\..\\games\\Legend of Zelda, The - Link's Awakening (USA, Europe).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";

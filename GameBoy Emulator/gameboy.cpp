@@ -178,7 +178,7 @@ int GameBoy::nextInstruction() {
 		auto now = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = now - realTimePoint;
 		realTimePoint = now;
-		SDL_Delay(2);
+		//SDL_Delay(2);
 		//std::this_thread::sleep_for(std::chrono::microseconds((long long)((0.010 - elapsed.count())*1000000)));
 	}
 	return cycles;

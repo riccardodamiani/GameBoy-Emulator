@@ -207,17 +207,23 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 	if (!(io->LCDC & 0x2))		//sprites are disabled
 		return;
 
+	int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
+	//vertical flip
 	int row = io->LY - (sprite->y_pos - 16);
+	row = sprite->y_flip ? (spriteSize-1-row) : row;
+
 	int col = sprite->x_pos - 8;
 	uint8_t* spriteMem = &vram[sprite->tile * 16];
 	SDL_Color pixel;
 	uint8_t color;
 	uint8_t palette = (sprite->palette ? io->OBP1 : io->OBP0);
+	
 	for (int i = 0; i < 8; i++) {
+		int pixelCol = sprite->x_flip ? (7-i) : i;		//horizontal flip
 		if (col + i < 0 || col + i > 159)	//not inside the screen
 			continue;
-		uint8_t color_nr = ((spriteMem[row * 2] >> (7 - i)) & 0x1) |
-			(((spriteMem[row * 2 + 1] >> (7 - i)) << 1) & 0x2);
+		uint8_t color_nr = ((spriteMem[row * 2] >> (7 - pixelCol)) & 0x1) |
+			(((spriteMem[row * 2 + 1] >> (7 - pixelCol)) << 1) & 0x2);
 		if (color_nr == 0)		//transparent
 			continue;
 		color = (palette >> (color_nr * 2)) & 0x3;
