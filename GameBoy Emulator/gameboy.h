@@ -9,12 +9,10 @@
 #include "structures.h"
 #include "renderer.h"
 #include "sound.h"
-#include "barrier.h"
 
 class Cartridge;
 class Lcd;
 class Input;
-class Barrier;
 
 class GameBoy {
 public:
@@ -26,8 +24,7 @@ public:
 	void screenUpdate(int clocks);
 	bool* getSoundEnable();
 	void setClockSpeed(float multiplier);
-
-	Barrier* vSync;
+	void runFor(int cycles);
 private:
 	struct registers registers;
 	

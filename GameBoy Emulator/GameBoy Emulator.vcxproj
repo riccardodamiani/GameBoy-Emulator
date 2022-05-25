@@ -172,7 +172,6 @@
     <ClCompile Include="sound.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="barrier.h" />
     <ClInclude Include="cartridge.h" />
     <ClInclude Include="errors.h" />
     <ClInclude Include="gameboy.h" />

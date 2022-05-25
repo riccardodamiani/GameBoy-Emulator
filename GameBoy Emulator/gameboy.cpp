@@ -8,7 +8,6 @@
 #include "globals.h"
 #include "memory.h"
 #include "ppu.h"
-#include "barrier.h"
 
 #include <iostream>
 #include <fstream>
@@ -36,7 +35,6 @@ bool GameBoy::Init() {
 	//init joypad stuff
 	this->registers.joyp_stat = 1;	
 	this->sound = new Sound();
-	vSync = new Barrier(2);
 
 	return true;
 }
@@ -139,6 +137,15 @@ void GameBoy::setClockSpeed(float multiplier) {
 	clockSpeed = multiplier;
 }
 
+void GameBoy::runFor(int cycles) {
+
+	joypadStatus = _input->getJoypadState();		//get joypad state
+	int clk = 0;
+	while (clk < cycles*clockSpeed) {
+		clk += nextInstruction();
+	}
+}
+
 int GameBoy::nextInstruction() {
 
 	int cycles = 0;
@@ -165,22 +172,21 @@ int GameBoy::nextInstruction() {
 		handleSerial();
 		handleTimer(cycles);
 		_ppu->drawScanline(cycles);
-		//screenUpdate(cycles * 4);
 		sound->UpdateSound(io_map);
 	}
 
 	//limits gameboy speed
-	time_clock += cycles * 4;
-	if (time_clock >= 4194*10*clockSpeed) {
+	/*time_clock += cycles * 4;
+	if (time_clock >= 4194*clockSpeed) {
 		time_clock = 0;
 		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms of gameboy time
 		//_gameboy->vSync->wait();		//wait for graphics sync
 		auto now = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = now - realTimePoint;
+		double elapsedTime = elapsed.count();
 		realTimePoint = now;
-		//SDL_Delay(2);
-		//std::this_thread::sleep_for(std::chrono::microseconds((long long)((0.010 - elapsed.count())*1000000)));
-	}
+		std::this_thread::sleep_for(std::chrono::microseconds((long long)(0.001 - elapsedTime)*100000));
+	}*/
 	return cycles;
 }
 
