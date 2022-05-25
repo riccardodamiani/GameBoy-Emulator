@@ -186,7 +186,6 @@ struct registers {
 
 struct ppu_registers {
 	uint8_t stat_signal;
-	uint8_t scanline;
 	uint16_t sl_cnt;
 	uint8_t spritesLoaded;
 	uint8_t bufferDrawn;

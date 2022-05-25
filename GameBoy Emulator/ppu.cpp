@@ -2,6 +2,7 @@
 #include "ppu.h"
 #include "memory.h"
 #include "globals.h"
+#include "gameboy.h"
 
 #include <mutex>
 #include <malloc.h>
@@ -32,26 +33,37 @@ void Ppu::sort(sprite_attribute** buffer, int len) {
 }
 
 void Ppu::drawScanline(int clk_cycles){
+	IO_map* io = _memory->getIOMap();
+	uint8_t* oam = _memory->getOam();
+
+	//ldc disabled
+	if (!(io->LCDC & 0x80)) {
+		registers.sl_cnt = 0;
+		io->LY = 0;
+		return;
+	}
 
 	registers.sl_cnt += clk_cycles;
 	if (registers.sl_cnt > 456) {
 		registers.sl_cnt -= 456;
-		registers.scanline++;
+		io->LY++;
 		registers.spritesLoaded = 0;
 		registers.bufferDrawn = 0;
-		if (registers.scanline >= 154) {
-			registers.scanline = 0;
+		if (io->LY == 144) {	//enter VBlank
+			io->IF |= 0x1;
+		}
+		if (io->LY >= 154) {
+			//_gameboy->vSync->wait();		//wait for graphics sync
+			io->LY = 0;
 			bufferMutex.lock();
 			activeBuffer = !activeBuffer;
 			bufferMutex.unlock();
 		}
 	}
-
-	IO_map* io = _memory->getIOMap();
-	uint8_t* oam = _memory->getOam();
+	
 	STAT_struct* stat = ((STAT_struct*)(&io->STAT));
 	uint8_t stat_s = 0;
-	if (registers.scanline >= 144) {		//VBLANK
+	if (io->LY >= 144) {		//VBLANK
 		stat->lcd_mode = 1;
 	}
 	else {
@@ -72,8 +84,8 @@ void Ppu::drawScanline(int clk_cycles){
 				int j = 0;
 				for (int i = 39; i >= 0; i--) {
 					int yPos = sprites[i]->y_pos - 16;
-					if (yPos >= registers.scanline &&
-						(registers.scanline < yPos + spriteSize)) {
+					if (io->LY >= yPos &&
+						(io->LY < yPos + spriteSize)) {
 						registers.scanlineSprites[j++] = sprites[i];
 						if (j >= 10)	//max 10 sprites per scanline
 							break;
@@ -125,9 +137,9 @@ void Ppu::drawBuffer(IO_map* io) {
 	uint32_t* buffer = screenBuffers[activeBuffer];
 
 	//clear the scanline
-	uint32_t* scanlineBuffer = &buffer[registers.scanline * 160];
+	uint32_t* scanlineBuffer = &buffer[io->LY * 160];
 	for (int i = 0; i < 160; i++) {	
-		memcpy(scanlineBuffer++, &gb_screen_palette[0], 4);
+		memcpy(&scanlineBuffer[i], &gb_screen_palette[0], 4);
 	}
 
 	//ldc disabled
@@ -143,7 +155,7 @@ void Ppu::drawBuffer(IO_map* io) {
 			drawSprite(registers.scanlineSprites[i], io, scanlineBuffer);
 		}
 	}
-
+	drawBackground(io, scanlineBuffer);
 	//sprites above background
 	for (int i = 0; i < 10; i++) {
 		if (registers.scanlineSprites[i] == nullptr)
@@ -160,24 +172,31 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 	}
 
 	uint32_t tileMapAddr = ((io->LCDC & 0x8) ? 0x1c00 : 0x1800);		//memory section for tile map
+	uint8_t pixelRow = (io->LY + io->SCY) % 8;
+	uint8_t mapRow = (io->LY + io->SCY) / 8;
+	if (mapRow > 31) mapRow %= 32;		//wrap the y around
 	for (int winTileCol = 0; winTileCol < 20; winTileCol++) {
 		short tileNum;
+		uint8_t mapCol = (winTileCol*8 + io->SCX) / 8;
+		if (mapCol > 31) mapCol %= 32;		//wrap the x around
 		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
-			int mapRow = (registers.scanline / 8) + io->SCY;
-			int mapCol = winTileCol + io->SCX;
-			if (mapCol > 31) mapCol -= 32;		//wrap the x around
-			if (mapRow > 31) mapRow -= 32;		//wrap the y around
 			tileNum = vram[tileMapAddr + mapRow * 32 + mapCol];
 		}
 		else {
-			int mapRow = (registers.scanline / 8) + io->SCY;
-			int mapCol = winTileCol + io->SCX;
-			if (mapCol > 31) mapCol -= 32;		//wrap the x around
-			if (mapRow > 31) mapRow -= 32;		//wrap the y around
 			tileNum = (char)vram[tileMapAddr + mapRow * 32 + mapCol] + 256;
 		}
-		for (int col = 0; col < 8; col++) {	//pixel columns for each tile
 
+		uint8_t* tileMem = &vram[tileNum * 16];
+		SDL_Color pixel;
+		uint8_t color;
+		for (int col = 0; col < 8; col++) {	//pixel columns for each tile
+			uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
+				(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
+			if (color_nr == 0)		//transparent
+				continue;
+			uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
+			pixel = gb_screen_palette[color];
+			memcpy(&scanlineBuffer[winTileCol * 8 + col], &pixel, 4);
 		}
 	}
 	
@@ -188,7 +207,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 	if (!(io->LCDC & 0x2))		//sprites are disabled
 		return;
 
-	int row = sprite->y_pos - 16 - registers.scanline;
+	int row = io->LY - (sprite->y_pos - 16);
 	int col = sprite->x_pos - 8;
 	uint8_t* spriteMem = &vram[sprite->tile * 16];
 	SDL_Color pixel;
@@ -211,7 +230,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 const uint32_t * const Ppu::getBufferToRender() {
 	bufferMutex.lock();
 	uint32_t* buffer = screenBuffers[!activeBuffer];
-	memcpy(tempBuffer, buffer, 23040 * 4);		//copy the buffer
+	memcpy(tempBuffer, buffer, 160 * 144 * 4);		//copy the buffer
 	bufferMutex.unlock();
 	return tempBuffer;
 }

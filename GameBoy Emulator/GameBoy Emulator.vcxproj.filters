@@ -95,5 +95,8 @@
     <ClInclude Include="memory.h">
       <Filter>File di risorse</Filter>
     </ClInclude>
+    <ClInclude Include="barrier.h">
+      <Filter>File di risorse</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

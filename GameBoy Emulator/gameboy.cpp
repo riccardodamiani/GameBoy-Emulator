@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "memory.h"
 #include "ppu.h"
+#include "barrier.h"
 
 #include <iostream>
 #include <fstream>
@@ -35,6 +36,7 @@ bool GameBoy::Init() {
 	//init joypad stuff
 	this->registers.joyp_stat = 1;	
 	this->sound = new Sound();
+	vSync = new Barrier(2);
 
 	return true;
 }
@@ -169,17 +171,16 @@ int GameBoy::nextInstruction() {
 
 	//limits gameboy speed
 	time_clock += cycles * 4;
-	if (time_clock >= 4194*clockSpeed) {
+	if (time_clock >= 4194*10*clockSpeed) {
 		time_clock = 0;
 		joypadStatus = _input->getJoypadState();		//get joypad state every ~1ms of gameboy time
-
-		auto endTime = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed = endTime - realTimePoint;
-		double elapsedTime = elapsed.count();	//elapsed time in seconds
-		realTimePoint = endTime;
-		std::this_thread::sleep_for(std::chrono::microseconds((long long)((0.001 - elapsedTime) * 100000)));
+		//_gameboy->vSync->wait();		//wait for graphics sync
+		auto now = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = now - realTimePoint;
+		realTimePoint = now;
+		SDL_Delay(2);
+		//std::this_thread::sleep_for(std::chrono::microseconds((long long)((0.010 - elapsed.count())*1000000)));
 	}
-	
 	return cycles;
 }
 

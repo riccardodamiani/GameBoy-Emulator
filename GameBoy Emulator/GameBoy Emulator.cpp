@@ -12,6 +12,7 @@
 #include "memory.h"
 #include "globals.h"
 #include "ppu.h"
+#include "barrier.h"
 
 void gameboyRoutine(void) {
     SDL_Delay(500);
@@ -20,20 +21,21 @@ void gameboyRoutine(void) {
     }
 }
 
+
 void renderRoutine() {
     double elapsedTime = 0;
-
     while (1) {
         auto startTime = std::chrono::high_resolution_clock::now();
 
         _input->beginNewFrame();
         _renderer->RenderFrame(elapsedTime);
+       // _gameboy->vSync->wait();
 
         auto endTime = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = endTime - startTime;
         elapsedTime = elapsed.count();	//elapsed time in seconds
 
-        elapsedTime += _renderer->limit_fps(elapsedTime, 50);
+        elapsedTime += _renderer->limit_fps(elapsedTime, 60);
     }
 }
 
