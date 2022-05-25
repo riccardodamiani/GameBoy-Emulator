@@ -7,6 +7,7 @@
 #include "input.h"
 #include "globals.h"
 #include "memory.h"
+#include "ppu.h"
 
 #include <iostream>
 #include <fstream>
@@ -43,7 +44,7 @@ bool* GameBoy::getSoundEnable() {
 }
 
 void GameBoy::screenUpdate(int clocks) {
-	uint8_t stat_s = 0;
+	/*uint8_t stat_s = 0;
 	IO_map* io_map = _memory->getIOMap();
 
 	if ((io_map->LCDC & 0x80) == 0) { 	//the lcd is off
@@ -127,7 +128,7 @@ void GameBoy::screenUpdate(int clocks) {
 	if (this->registers.stat_signal == 0 && stat_s == 1) {
 		io_map->IF |= 0x2;
 	}
-	this->registers.stat_signal = stat_s;
+	this->registers.stat_signal = stat_s;*/
 
 }
 
@@ -161,7 +162,8 @@ int GameBoy::nextInstruction() {
 	if (!registers.stopped) {
 		handleSerial();
 		handleTimer(cycles);
-		screenUpdate(cycles * 4);
+		_ppu->drawScanline(cycles);
+		//screenUpdate(cycles * 4);
 		sound->UpdateSound(io_map);
 	}
 

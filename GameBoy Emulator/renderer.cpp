@@ -1,12 +1,12 @@
 #include "renderer.h"
 #include "structures.h"
 #include "errors.h"
-#include "structures.h"
 #include "gameboy.h"
 #include "globals.h"
 #include "sound.h"
 #include "input.h"
 #include "memory.h"
+#include "ppu.h"
 
 #include <SDL.h>
 #include <thread>
@@ -70,6 +70,8 @@ void Renderer::Init(int width, int height) {
 	this->bg_tiles = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 192);
 	obj_tiles_1 = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 192);
 	obj_tiles_2 = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 128, 192);
+	windowScreen = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+	SDL_SetTextureBlendMode(windowScreen, SDL_BLENDMODE_NONE);
 	SDL_SetTextureBlendMode(bg_tiles, SDL_BLENDMODE_BLEND);
 	SDL_SetTextureBlendMode(obj_tiles_1, SDL_BLENDMODE_BLEND);
 	SDL_SetTextureBlendMode(obj_tiles_2, SDL_BLENDMODE_BLEND);
@@ -169,7 +171,7 @@ void Renderer::RenderFrame(double elapsedTime) {
 	SDL_SetRenderTarget(_renderer, nullptr);
 	SDL_SetRenderDrawBlendMode(this->_renderer, SDL_BLENDMODE_NONE);
 
-	checkAndReload();
+	/*checkAndReload();
 	if (!(this->io->LCDC & 0x80) || stopped) {		//ldc disabled or gameboy is stopped
 		SDL_SetRenderDrawColor(this->_renderer, 224, 248, 208, 255);		//white
 		SDL_RenderClear(this->_renderer);
@@ -210,10 +212,21 @@ void Renderer::RenderFrame(double elapsedTime) {
 	renderBg(frameRect);
 	renderWindow(frameRect);
 	renderSpritesWithPriority(frameRect, 0);		//above background
-
+	*/
 	//_debug_renderBgMap();
 	//_debug_renderWindowMap();
 	//_debug_renderBgTiles();
+
+	//draw the buffer
+	const uint32_t* const screen = _ppu->getBufferToRender();
+	int pitch;
+	void* pixelBuffer;
+	if (SDL_LockTexture(windowScreen, nullptr, &pixelBuffer, &pitch) < 0)
+		fatal(FATAL_TEXTURE_LOCKING_FAILED, __func__);
+	memcpy(pixelBuffer, screen, 160 * 144 * 4);
+	SDL_UnlockTexture(windowScreen);
+	SDL_SetRenderTarget(_renderer, nullptr);
+	SDL_RenderCopy(_renderer, windowScreen, nullptr, nullptr);
 
 	ImGui::Render();
 	ImGuiSDL::Render(ImGui::GetDrawData());

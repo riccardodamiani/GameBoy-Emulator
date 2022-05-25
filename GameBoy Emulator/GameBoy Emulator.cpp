@@ -11,9 +11,10 @@
 #include "input.h"
 #include "memory.h"
 #include "globals.h"
+#include "ppu.h"
 
 void gameboyRoutine(void) {
-    SDL_Delay(1000);
+    SDL_Delay(500);
     while (1) {
         _gameboy->nextInstruction();
     }
@@ -53,6 +54,7 @@ int main(int argc, char** argv)
 
     _memory->Init(filename.c_str());
     _input->Init();
+    _ppu->Init();
     _gameboy->Init();
     _renderer->Init(160 * 4, 144 * 4);
 
