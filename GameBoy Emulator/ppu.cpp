@@ -221,30 +221,6 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 		SDL_Color pixel = gb_screen_palette[color];
 		memcpy(&scanlineBuffer[screenX], &pixel, 4);
 	}
-	/*for (int winTileCol = 0; winTileCol < 20; winTileCol++) {
-		short tileNum;
-		uint8_t mapCol = (winTileCol*8 + io->SCX) / 8;
-		if (mapCol > 31) mapCol %= 32;		//wrap the x around
-		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
-			tileNum = vram[tileMapAddr + mapRow * 32 + mapCol];
-		}
-		else {
-			tileNum = (char)vram[tileMapAddr + mapRow * 32 + mapCol] + 256;
-		}
-
-		uint8_t* tileMem = &vram[tileNum * 16];
-		SDL_Color pixel;
-		uint8_t color;
-		for (int col = 0; col < 8; col++) {	//pixel columns for each tile
-			uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
-				(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
-			if (color_nr == 0)		//transparent
-				continue;
-			uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
-			pixel = gb_screen_palette[color];
-			memcpy(&scanlineBuffer[winTileCol * 8 + col], &pixel, 4);
-		}
-	}*/
 
 	if (!(io->LCDC & 0x20))		//window disabled
 		return;

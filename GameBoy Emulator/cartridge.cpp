@@ -13,6 +13,7 @@
 uint8_t Cartridge::bank1_reg = 0;
 uint8_t Cartridge::bank2_reg = 1;
 uint8_t Cartridge::ram_bank = 0;
+uint32_t Cartridge::rom_mask = 0;
 bool Cartridge::ram_access = false;
 uint8_t Cartridge::mode_reg = 0;
 
@@ -166,11 +167,12 @@ void Cartridge::verifyHeader(int fileSize) {
 		std::cout << "Rom size code: " << (int)header->romSize << 
 			"(" << (0x8000 << header->romSize) << " bytes)" << std::endl;
 #endif
-		if (fileSize > (0x8000 << header->romSize)) {
+		if (fileSize != (0x8000 << header->romSize)) {
 			fatal(FATAL_UNMATCHING_ROM_SIZE, __func__,
 				"File size is " + std::to_string(fileSize) +
 				" bytes, rom header says " + std::to_string((0x8000 << header->romSize)) + " bytes");
 		}
+		rom_mask = fileSize - 1;
 	}
 	else {
 #ifdef _DEBUG
@@ -306,21 +308,24 @@ uint32_t Cartridge::no_mbc_ram_translate_func(uint16_t gb_addr) {
 //MBC1 CHIP: Max ram 32kB, max rom 2MB
 uint32_t Cartridge::mbc1_rom_translate_func(uint16_t gb_addr) {
 	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
-		if (!mode_reg) {		//mode 0: is used always bank 0
+		//if (!mode_reg) {		//mode 0: is used always bank 0
 			return gb_addr;
-		}
+		//}
 		//mode 1: used to access banks 0x20, 0x40 and 0x60
-		return (gb_addr | ((bank2_reg << 5) << 14));
+		//return (gb_addr | ((bank2_reg << 5) << 14));
 	}
 	//0x4000 - 0x7fff range
-	return (gb_addr & 0x3fff) | ((bank1_reg | (bank2_reg << 5)) << 14);
+	if (!mode_reg) {		//mode 0: rom mode
+		return ((gb_addr & 0x3fff) | ((bank1_reg | (bank2_reg << 5)) << 14)) & rom_mask;
+	}
+	return ((gb_addr & 0x3fff) | (bank1_reg << 14)) & rom_mask;
 }
 
 uint32_t Cartridge::mbc1_ram_translate_func(uint16_t gb_addr) {
 	if (!mode_reg) {	//mode 0: bank2 register is ignored
 		return (gb_addr & 0x1fff);
 	}
-	//mode 1: 
+	//mode 1: ram mode
 	return ((gb_addr & 0x1fff) | (bank2_reg << 13));
 }
 
@@ -351,7 +356,7 @@ uint32_t Cartridge::mbc3_rom_translate_func(uint16_t gb_addr) {
 		return gb_addr;		//always mapped as bank 0
 	}
 	//0x4000 - 0x7fff range
-	return (gb_addr & 0x3fff) | (bank2_reg << 14);
+	return ((gb_addr & 0x3fff) | (bank2_reg << 14)) & rom_mask;
 }
 
 

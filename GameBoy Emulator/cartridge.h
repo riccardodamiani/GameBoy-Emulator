@@ -73,6 +73,7 @@ private:
 	static uint8_t ram_bank;
 	static bool ram_access;
 	static uint8_t mode_reg;
+	static uint32_t rom_mask;
 	cartridge_header* header;
 	std::string romPath;
 	int ramSize;

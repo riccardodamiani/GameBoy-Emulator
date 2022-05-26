@@ -69,6 +69,12 @@ uint8_t* Memory::translateAddr(uint16_t addr) {
 //translate the gameboy address into a real memory address and read a byte
 uint8_t Memory::read(uint16_t gb_address) {
 
+	//cpu can't access vram during video mode 3
+	/*if (gb_address >= 0x8000 && gb_address < 0xa000 && 
+		((STAT_struct*)(&io_map->STAT))->lcd_mode > 2) {
+		return 0xff;
+	}*/
+
 	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//bootstrap rom
 		return this->boot_rom[gb_address];
 	}
@@ -85,6 +91,12 @@ uint8_t Memory::read(uint16_t gb_address) {
 
 //translate the gameboy address into a real memory address and write a byte
 void Memory::write(uint16_t gb_address, uint8_t value) {
+
+	//cpu can't access vram during video mode 3
+	/*if (gb_address >= 0x8000 && gb_address < 0xa000 &&
+		((STAT_struct*)(&io_map->STAT))->lcd_mode > 2) {
+		return;
+	}*/
 
 	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//bootstrap rom
 		return;
