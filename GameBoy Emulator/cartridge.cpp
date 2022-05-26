@@ -125,7 +125,7 @@ void Cartridge::allocRamFromHeader() {
 
 void Cartridge::saveState(void) {
 	
-	if (header->ramSize == 0 || this->ram == nullptr || ramSize <= 0) {
+	if (this->ram == nullptr || ramSize <= 0) {
 		_renderer->showMessage("This game doesn't support saving.", 2);
 		return;
 	}
@@ -155,7 +155,7 @@ void Cartridge::saveState(void) {
 
 void Cartridge::loadState(void) {
 
-	if (header->ramSize == 0 || ram == nullptr) {
+	if (ramSize <= 0 || ram == nullptr) {
 		return;
 	}
 
