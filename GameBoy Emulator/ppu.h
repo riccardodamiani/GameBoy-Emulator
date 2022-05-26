@@ -6,18 +6,32 @@
 #include "structures.h"
 
 namespace {
-	SDL_Color gb_default_palette[4] = {
-		{224, 248, 208, 255},
-		{136, 192, 112, 255},
-		{52, 104, 86, 255},
-		{8, 24, 32, 255}
+	SDL_Color gb_palettes[][4] = {
+		{
+			{224, 248, 208, 255},	//default palette
+			{136, 192, 112, 255},
+			{52, 104, 86, 255},
+			{8, 24, 32, 255}
+		},
+		{
+			{135, 130, 10, 255},		//original palette
+			{100, 125, 60, 255},
+			{55, 90, 75, 255},
+			{35, 70, 60, 255}
+		},
+		{
+			{255, 255, 255, 255},		//greyscale palette
+			{170, 170, 170, 255},
+			{85, 85, 85, 255},
+			{0, 0, 0, 255}
+		}
 	};
-	SDL_Color gb_original_palette[4] = {
-		{143, 154, 16, 255},
-		{122, 127, 45, 255},
-		{70, 87, 45, 255},
-		{45, 60, 45, 255}
+	/*SDL_Color gb_original_palette[4] = {
+		
 	};
+	SDL_Color gb_greyscale_palette[4] = {
+		
+	};*/
 };
 
 class Ppu {
@@ -26,6 +40,7 @@ public:
 	void Init();
 	void drawScanline(int cycles);
 	const uint32_t* const getBufferToRender();
+	void setPalette(int nr);
 private:
 	void sort(sprite_attribute** buffer, int len);
 	void drawBuffer(IO_map* io);
@@ -42,6 +57,8 @@ private:
 	uint8_t* vram;
 	std::mutex bufferMutex;
 	SDL_Color* dmg_palette;
+	int paletteNr;
+	bool updatePalette;
 };
 
 #endif

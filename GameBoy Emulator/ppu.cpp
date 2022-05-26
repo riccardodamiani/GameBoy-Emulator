@@ -8,16 +8,21 @@
 #include <malloc.h>
 
 Ppu::Ppu() {
-	
+	updatePalette = false;
 }
 
 void Ppu::Init() {
 
-	dmg_palette = gb_default_palette;
+	dmg_palette = gb_palettes[0];
 	vram = _memory->getVram();
 
 	//used to provide a copy of the buffer to render to the renderer
 	tempBuffer = (uint32_t*)malloc(23040 * 4);
+}
+
+void Ppu::setPalette(int nr) {
+	updatePalette = true;
+	paletteNr = nr;
 }
 
 //simple bubble sort for x position
@@ -289,5 +294,12 @@ const uint32_t * const Ppu::getBufferToRender() {
 	uint32_t* buffer = screenBuffers[!activeBuffer];
 	memcpy(tempBuffer, buffer, 160 * 144 * 4);		//copy the buffer
 	bufferMutex.unlock();
+
+	if (updatePalette) {
+		updatePalette = 0;
+		if (paletteNr >= 0 && paletteNr < 3) {
+			dmg_palette = gb_palettes[paletteNr];
+		}
+	}
 	return tempBuffer;
 }

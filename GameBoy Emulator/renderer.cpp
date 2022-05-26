@@ -43,6 +43,7 @@ void Renderer::Init(int width, int height) {
 	settingTabs = 0;
 	windowSizeSelectedItem = (char*)windowSizeItems[2];
 	gameSpeedSelectedItem = (char*)gameSpeedItems[2];
+	paletteSelectedItem = (char*)paletteItems[0];
 
 	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");		//needed otherwise imgui breaks when resizing the window
 	_window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, this->windowWidth, this->windowHeight, 0);
@@ -192,6 +193,21 @@ void Renderer::imguiFrame(float elapsed) {
 					if (ImGui::Selectable(gameSpeedItems[n], is_selected)) {		//set new selected item
 						gameSpeedSelectedItem = (char*)gameSpeedItems[n];
 						_gameboy->setClockSpeed(0.5 + n * 0.25);
+					}
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			if (ImGui::BeginCombo("Palette", paletteSelectedItem))
+			{
+				for (int n = 0; n < IM_ARRAYSIZE(paletteItems); n++)
+				{
+					bool is_selected = (paletteSelectedItem == paletteItems[n]);
+					if (ImGui::Selectable(paletteItems[n], is_selected)) {		//set new selected item
+						paletteSelectedItem = (char*)paletteItems[n];
+						_ppu->setPalette(n);
 					}
 					if (is_selected) {
 						ImGui::SetItemDefaultFocus();
