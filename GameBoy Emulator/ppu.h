@@ -25,6 +25,10 @@ private:
 	void drawBuffer(IO_map* io);
 	void drawSprite(sprite_attribute *sprite, IO_map* io, uint32_t* scanlineBuffer);
 	void drawBackground(IO_map* io, uint32_t* scanlineBuffer);
+	void clearScanline(IO_map* io);
+	void clearScreen();
+	void disable();
+	void enable();
 	ppu_registers registers;
 	uint32_t screenBuffers[2][23040];		//screen buffers with pixel format rgba
 	uint32_t* tempBuffer;	//used to provide a copy of the buffer to render to the renderer

@@ -190,6 +190,7 @@ struct ppu_registers {
 	uint8_t spritesLoaded;
 	uint8_t bufferDrawn;
 	sprite_attribute* scanlineSprites[10];
+	uint8_t enabled;
 };
 
 struct scanlineStat {

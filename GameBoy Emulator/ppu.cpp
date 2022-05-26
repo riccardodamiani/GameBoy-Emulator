@@ -32,6 +32,36 @@ void Ppu::sort(sprite_attribute** buffer, int len) {
 	}
 }
 
+void Ppu::clearScanline(IO_map* io) {
+	uint32_t* buffer = screenBuffers[activeBuffer];
+
+	//clear the scanline
+	uint32_t* scanlineBuffer = &buffer[io->LY * 160];
+	for (int i = 0; i < 160; i++) {
+		memcpy(&scanlineBuffer[i], &gb_screen_palette[0], 4);
+	}
+}
+
+void Ppu::clearScreen() {
+	bufferMutex.lock();
+	for (int i = 0; i < 160*144*2; i++) {
+		memcpy(&screenBuffers[0][i], &gb_screen_palette[0], 4);
+	}
+	bufferMutex.unlock();
+}
+
+void Ppu::disable() {
+	if (!registers.enabled)
+		return;
+
+	registers.enabled = 0;
+	clearScreen();
+}
+
+void Ppu::enable() {
+	registers.enabled = 1;
+}
+
 void Ppu::drawScanline(int clk_cycles){
 	IO_map* io = _memory->getIOMap();
 	uint8_t* oam = _memory->getOam();
@@ -40,8 +70,10 @@ void Ppu::drawScanline(int clk_cycles){
 	if (!(io->LCDC & 0x80)) {
 		registers.sl_cnt = 0;
 		io->LY = 0;
+		disable();
 		return;
 	}
+	enable();
 
 	registers.sl_cnt += clk_cycles;
 	if (registers.sl_cnt > 456) {
@@ -141,11 +173,6 @@ void Ppu::drawBuffer(IO_map* io) {
 		memcpy(&scanlineBuffer[i], &gb_screen_palette[0], 4);
 	}
 
-	//ldc disabled
-	if (!(io->LCDC & 0x80)) {
-		return;
-	}
-
 	//sprites behind background
 	for (int i = 0; i < 10; i++) {
 		if (registers.scanlineSprites[i] == nullptr)
@@ -221,11 +248,31 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 
 	if (!(io->LCDC & 0x20))		//window disabled
 		return;
+	if (io->LY < io->WY || io->WX < 7 || io->WX > 152)		//not shown
+		return;
 
 	//memory section for window tile map
 	tileMapAddr = ((io->LCDC & 0x40) ? 0x1c00 : 0x1800);
-
 	
+	pixelRow = (io->LY + io->WY) % 8;
+	mapRow = (io->LY + io->WY) / 8;
+	for (uint8_t screenX = io->WX - 7; screenX < 160; screenX++) {
+		uint8_t tileMapX = screenX - io->WX + 7;
+		short tileNum;
+		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
+			tileNum = vram[tileMapAddr + mapRow * 32 + tileMapX / 8];
+		}
+		else {
+			tileNum = (char)vram[tileMapAddr + mapRow * 32 + tileMapX / 8] + 256;
+		}
+		uint8_t* tileMem = &vram[tileNum * 16];
+		int col = tileMapX % 8;
+		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
+			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
+		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
+		SDL_Color pixel = gb_screen_palette[color];
+		memcpy(&scanlineBuffer[screenX], &pixel, 4);
+	}
 }
 
 void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuffer) {
