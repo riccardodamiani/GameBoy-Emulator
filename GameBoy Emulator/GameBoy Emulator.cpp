@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 
     std::string filename;
 #ifdef _DEBUG
-    filename = "..\\..\\games\\Legend of Zelda, The - Link's Awakening (USA, Europe).gb";
+    filename = "..\\..\\games\\Super Mario Land 2 - 6 Golden Coins (USA, Europe).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";
