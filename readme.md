@@ -1,5 +1,5 @@
 # Gameboy Emulator
-Open-source Gameboy emulator written in C++. It uses SDL2 for graphics and SDL Mixer for audio. In the current state a lot of the most common games run without major issues, however note that the project is still very much a work in progress and, for now, supports only DMG games.  
+Open-source Gameboy emulator written in C++. It uses SDL2 for graphics and SDL Mixer for audio. In the current state most games run without major issues, however note that the project is still very much a work in progress and, for now, supports only DMG roms.  
 The code is written for Windows, however Windows API are only used for console stuff so it should be easily portable to other platforms as well.
 
 
@@ -8,7 +8,7 @@ The code is written for Windows, however Windows API are only used for console s
 
 
 ## Not yet implemented
-- MBC3+TIMER, MBC2, MBC4, MBC5 memory bank controllers
+- MBC3+TIMER, MBC4, MBC5 memory bank controllers
 - Serial communication
 
 
@@ -33,6 +33,11 @@ Keyboard map can be customized under menu/settings.
 |---------------------------------------|---------------|-------|
 | Donkey kong 							| Great 		|		|
 | Donkey kong Land 						| Unplayable	| Major graphical issues |
+| Donkey kong Land 2 					| Playable 		|     	|
+| Donkey kong Land 3 					| Playable 		|    	|
+| F-1 Race 								| Playable 		| 		|
+| Faceball 2000 						| Playable 		| 		|
+| Ferrari Grand Prix Challenge			| Playable 		| Audio issues |
 | Legend of Zelda (Link's awakening)	| Great			|		|
 | Pokemon Red							| Great			|		|
 | Super Mario Land						| Great			|		|
