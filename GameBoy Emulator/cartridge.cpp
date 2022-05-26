@@ -14,6 +14,7 @@ uint8_t Cartridge::bank1_reg = 0;
 uint8_t Cartridge::bank2_reg = 1;
 uint8_t Cartridge::ram_bank = 0;
 uint32_t Cartridge::rom_mask = 0;
+uint32_t Cartridge::ram_mask = 0;
 bool Cartridge::ram_access = false;
 uint8_t Cartridge::mode_reg = 0;
 
@@ -43,6 +44,7 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->romWrite = this->no_mbc_rom_write;
 		this->romTranslateAddr = this->no_mbc_rom_translate_func;
 		this->ramTranslateAddr = this->no_mbc_ram_translate_func;
+		allocRamFromHeader();
 	}
 	else if(header->cartridgeType == 1 ||		//mbc1 chip
 		header->cartridgeType == 2 ||
@@ -54,6 +56,17 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->romWrite = this->mbc1_rom_write;
 		this->romTranslateAddr = this->mbc1_rom_translate_func;
 		this->ramTranslateAddr = this->mbc1_ram_translate_func;
+		allocRamFromHeader();
+	}
+	else if (header->cartridgeType == 5 ||	//mbc2 chip
+		header->cartridgeType == 6) {
+		Cartridge::bank1_reg = 0;
+		Cartridge::bank2_reg = 1;
+
+		this->romWrite = this->mbc2_rom_write;
+		this->romTranslateAddr = this->mbc2_rom_translate_func;
+		this->ramTranslateAddr = this->mbc2_ram_translate_func;
+		allocMbc2Ram();
 	}
 	else if (header->cartridgeType == 0x11 ||		//mbc3 chip (no RTC)
 		header->cartridgeType == 0x12 ||
@@ -64,13 +77,25 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->romWrite = this->mbc3_rom_write;
 		this->romTranslateAddr = this->mbc3_rom_translate_func;
 		this->ramTranslateAddr = this->mbc3_ram_translate_func;
+		allocRamFromHeader();
 	}
 
+}
+
+void Cartridge::allocMbc2Ram() {
+	this->ram = (uint8_t*)calloc(512, 1);
+	ram_mask = 511;
+	ramSize = 512;
+	loadState();		//search for a save file and load it into memory
+}
+
+void Cartridge::allocRamFromHeader() {
 	if (header->ramSize != 0) {
 		ramSize = 0;
 		if (header->ramSize == 1) {
 			ramSize = 2048;
-		}else if (header->ramSize == 2) {
+		}
+		else if (header->ramSize == 2) {
 			ramSize = 8192;
 		}
 		else if (header->ramSize == 3) {
@@ -85,6 +110,7 @@ Cartridge::Cartridge(const char* rom_filename){
 		else {
 			fatal(FATAL_INVALID_RAM_SIZE, __func__);
 		}
+		ram_mask = ramSize - 1;
 #ifdef _DEBUG
 		std::cout << "Ram size: " << ramSize << std::endl;
 #endif
@@ -326,7 +352,7 @@ uint32_t Cartridge::mbc1_ram_translate_func(uint16_t gb_addr) {
 		return (gb_addr & 0x1fff);
 	}
 	//mode 1: ram mode
-	return ((gb_addr & 0x1fff) | (bank2_reg << 13));
+	return ((gb_addr & 0x1fff) | (bank2_reg << 13)) & ram_mask;
 }
 
 void Cartridge::mbc1_rom_write(uint16_t gb_addr, uint8_t val) {
@@ -351,6 +377,38 @@ void Cartridge::mbc1_rom_write(uint16_t gb_addr, uint8_t val) {
 	}
 }
 
+uint32_t Cartridge::mbc2_rom_translate_func(uint16_t gb_addr) {
+	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
+		return gb_addr;		//always mapped as bank 0
+	}
+	//0x4000 - 0x7fff range
+	return ((gb_addr & 0x3fff) | (bank2_reg << 14)) & rom_mask;
+}
+
+
+uint32_t Cartridge::mbc2_ram_translate_func(uint16_t gb_addr) {
+	//mbc2 ram is always 512 bytes (only lsf 4 bits per byte are actually stored)
+	//also the address wraps around if out the 0x0 - 0x200 range
+	return (gb_addr & 0x3fff) % 0x200;
+}
+
+void Cartridge::mbc2_rom_write(uint16_t gb_addr, uint8_t val) {
+	//enable and disable ram access
+	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
+		if (gb_addr & 0x100) {	//rom bank register
+			bank2_reg = val & 0xf;
+			if (bank2_reg == 0) bank2_reg = 1;
+			return;
+		}
+		if ((val & 0xf) == 0xa) {		//ram register
+			ram_access = true;
+			return;
+		}
+		ram_access = false;
+		return;
+	}
+}
+
 uint32_t Cartridge::mbc3_rom_translate_func(uint16_t gb_addr) {
 	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
 		return gb_addr;		//always mapped as bank 0
@@ -361,7 +419,7 @@ uint32_t Cartridge::mbc3_rom_translate_func(uint16_t gb_addr) {
 
 
 uint32_t Cartridge::mbc3_ram_translate_func(uint16_t gb_addr) {
-	return ((gb_addr & 0x1fff) | (ram_bank << 13));
+	return ((gb_addr & 0x1fff) | (ram_bank << 13)) & ram_mask;
 }
 
 void Cartridge::mbc3_rom_write(uint16_t gb_addr, uint8_t val) {

@@ -44,6 +44,8 @@ namespace {
 		"MBC1",		//1
 		"MBC1+RAM",		//2
 		"MBC1+RAM+BATTERY",		//3
+		"MBC2",		//5
+		"MBC2+BATTERY",		//6
 		"ROM+RAM",		//8
 		"ROM+RAM+BATTERY",		//9
 		"MBC3",		//11
@@ -74,10 +76,13 @@ private:
 	static bool ram_access;
 	static uint8_t mode_reg;
 	static uint32_t rom_mask;
+	static uint32_t ram_mask;
 	cartridge_header* header;
 	std::string romPath;
 	int ramSize;
 
+	void allocRamFromHeader();
+	void allocMbc2Ram();
 	void loadState(void);
 	void verifyHeader(int fileSize);
 	uint32_t (*romTranslateAddr)(uint16_t gb_addr);
@@ -89,6 +94,9 @@ private:
 	static uint32_t mbc1_rom_translate_func(uint16_t gb_addr);
 	static uint32_t mbc1_ram_translate_func(uint16_t gb_addr);
 	static void mbc1_rom_write(uint16_t gb_addr, uint8_t val);
+	static uint32_t mbc2_rom_translate_func(uint16_t gb_addr);
+	static uint32_t mbc2_ram_translate_func(uint16_t gb_addr);
+	static void mbc2_rom_write(uint16_t gb_addr, uint8_t val);
 	static uint32_t mbc3_rom_translate_func(uint16_t gb_addr);
 	static uint32_t mbc3_ram_translate_func(uint16_t gb_addr);
 	static void mbc3_rom_write(uint16_t gb_addr, uint8_t val);
