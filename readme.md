@@ -41,11 +41,11 @@ Keyboard map can be customized under menu/settings.
 | Legend of Zelda (Link's awakening)	| Great			|		|
 | Pokemon Red							| Great			|		|
 | Super Mario Land						| Great			|		|
-| Super Mario Land 2					| Fine			| Audio channel 2 is distorted |
+| Super Mario Land 2					| Fine			| Minor audio issues |
 | Wario Land - Super Mario Land 3 		| Playable		|		|
 | Super Mario Land 4 					| Playable		|		|
-| Kirby's Dream Land					| Fine			| Audio wave channel missing |
-| Kirby's Dream Land 2 					| Fine			| Audio is somewhat wrong |
+| Kirby's Dream Land					| Fine			| Minor audio issues |
+| Kirby's Dream Land 2 					| Fine			| Audio issues |
 | Tetris (World)						| Great			|		|
 | Space Invaders						| Great			|		|
 | Metroid II 							| Playable		|		|
