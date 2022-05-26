@@ -12,6 +12,8 @@ Ppu::Ppu() {
 }
 
 void Ppu::Init() {
+
+	dmg_palette = gb_default_palette;
 	vram = _memory->getVram();
 
 	//used to provide a copy of the buffer to render to the renderer
@@ -38,14 +40,14 @@ void Ppu::clearScanline(IO_map* io) {
 	//clear the scanline
 	uint32_t* scanlineBuffer = &buffer[io->LY * 160];
 	for (int i = 0; i < 160; i++) {
-		memcpy(&scanlineBuffer[i], &gb_screen_palette[0], 4);
+		memcpy(&scanlineBuffer[i], &dmg_palette[0], 4);
 	}
 }
 
 void Ppu::clearScreen() {
 	bufferMutex.lock();
 	for (int i = 0; i < 160*144*2; i++) {
-		memcpy(&screenBuffers[0][i], &gb_screen_palette[0], 4);
+		memcpy(&screenBuffers[0][i], &dmg_palette[0], 4);
 	}
 	bufferMutex.unlock();
 }
@@ -170,7 +172,7 @@ void Ppu::drawBuffer(IO_map* io) {
 	//clear the scanline
 	uint32_t* scanlineBuffer = &buffer[io->LY * 160];
 	for (int i = 0; i < 160; i++) {	
-		memcpy(&scanlineBuffer[i], &gb_screen_palette[io->BGP&0x3], 4);
+		memcpy(&scanlineBuffer[i], &dmg_palette[io->BGP&0x3], 4);
 	}
 
 	//sprites behind background
@@ -218,7 +220,7 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 		if (color_nr == 0)		//transparent
 			continue;
 		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
-		SDL_Color pixel = gb_screen_palette[color];
+		SDL_Color pixel = dmg_palette[color];
 		memcpy(&scanlineBuffer[screenX], &pixel, 4);
 	}
 
@@ -246,7 +248,7 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
 			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
 		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
-		SDL_Color pixel = gb_screen_palette[color];
+		SDL_Color pixel = dmg_palette[color];
 		memcpy(&scanlineBuffer[screenX], &pixel, 4);
 	}
 }
@@ -276,7 +278,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 		if (color_nr == 0)		//transparent
 			continue;
 		color = (palette >> (color_nr * 2)) & 0x3;
-		pixel = gb_screen_palette[color];
+		pixel = dmg_palette[color];
 		memcpy(&scanlineBuffer[col + i], &pixel, 4);
 	}
 }
