@@ -170,7 +170,7 @@ void Ppu::drawBuffer(IO_map* io) {
 	//clear the scanline
 	uint32_t* scanlineBuffer = &buffer[io->LY * 160];
 	for (int i = 0; i < 160; i++) {	
-		memcpy(&scanlineBuffer[i], &gb_screen_palette[0], 4);
+		memcpy(&scanlineBuffer[i], &gb_screen_palette[io->BGP&0x3], 4);
 	}
 
 	//sprites behind background
