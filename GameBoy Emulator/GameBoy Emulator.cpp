@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::string filename;
 #ifdef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-    filename = "..\\..\\games\\Donkey Kong Land 2 (UE) [S][!].gb";
+    filename = "..\\..\\games\\Donkey Kong Land III (USA, Europe).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";

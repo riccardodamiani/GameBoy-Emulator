@@ -30,7 +30,6 @@ private:
 	
 	Sound* sound;
 	joypad joypadStatus;
-	scanlineStat frameStat[144];
 	float clockSpeed;
 
 	uint32_t time_clock;

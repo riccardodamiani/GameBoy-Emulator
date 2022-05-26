@@ -193,16 +193,6 @@ struct ppu_registers {
 	uint8_t enabled;
 };
 
-struct scanlineStat {
-	uint8_t lcdc;
-	uint8_t SCX;
-	uint8_t SCY;
-	uint8_t WX;
-	uint8_t WY;
-	uint8_t firstScanline;
-	uint8_t height;
-};
-
 struct STAT_struct {
 	uint8_t lcd_mode : 2,		//lcd draw mode
 		ly_cf : 1,			//LY coincidence flag

@@ -28,7 +28,6 @@ bool GameBoy::Init() {
 	joypadStatus = {};
 
 	//init mem
-	memset(frameStat, 0, sizeof(frameStat));
 	memset(&this->registers, 0, sizeof(this->registers));
 	this->registers.pc = 0;
 
