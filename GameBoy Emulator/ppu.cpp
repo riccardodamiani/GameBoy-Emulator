@@ -254,8 +254,8 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 	//memory section for window tile map
 	tileMapAddr = ((io->LCDC & 0x40) ? 0x1c00 : 0x1800);
 	
-	pixelRow = (io->LY + io->WY) % 8;
-	mapRow = (io->LY + io->WY) / 8;
+	pixelRow = (io->LY - io->WY) % 8;
+	mapRow = (io->LY - io->WY) / 8;
 	for (uint8_t screenX = io->WX - 7; screenX < 160; screenX++) {
 		uint8_t tileMapX = screenX - io->WX + 7;
 		short tileNum;
