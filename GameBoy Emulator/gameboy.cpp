@@ -194,10 +194,9 @@ void GameBoy::handleSerial(void) {
 int GameBoy::execute() {
 
 	uint16_t pc = this->registers.pc;
-
-	/*if (pc == 0x1e7e) {
+	if (pc == 0x5b68) {
 		pc = pc;
-	}*/
+	}
 	uint8_t opcode = _memory->read(pc);
 
 	switch (opcode) {
@@ -264,7 +263,7 @@ int GameBoy::execute() {
 		this->registers.a |= this->registers.flag.c;
 		this->registers.flag.n = 0;
 		this->registers.flag.h = 0;
-		this->registers.flag.z = (this->registers.a == 0);
+		this->registers.flag.z = 0;
 
 		this->registers.pc += 1;
 		return 1;
@@ -346,7 +345,7 @@ int GameBoy::execute() {
 		this->registers.a |= (this->registers.flag.c << 7);
 		this->registers.flag.n = 0;
 		this->registers.flag.h = 0;
-		this->registers.flag.z = (this->registers.a == 0);
+		this->registers.flag.z = 0;
 		
 		this->registers.pc += 1;
 		return 1;
@@ -418,7 +417,7 @@ int GameBoy::execute() {
 		this->registers.a |= bit0;
 		this->registers.flag.n = 0;
 		this->registers.flag.h = 0;
-		this->registers.flag.z = (this->registers.a == 0);
+		this->registers.flag.z = 0;
 
 		this->registers.pc += 1;
 		return 1;
@@ -501,7 +500,7 @@ int GameBoy::execute() {
 		this->registers.a |= (bit7 << 7);
 		this->registers.flag.n = 0;
 		this->registers.flag.h = 0;
-		this->registers.flag.z = (this->registers.a == 0);
+		this->registers.flag.z = 0;
 
 		this->registers.pc += 1;
 		return 1;
@@ -1953,7 +1952,7 @@ int GameBoy::execute() {
 	{
 		uint16_t gb_addr = (_memory->read(pc + 1) | (_memory->read(pc + 2) << 8));
 		this->registers.a = _memory->read(gb_addr);
-		this->registers.pc += 3;
+ 		this->registers.pc += 3;
 		return 4;
 	}
 	case 0xfb:		//EI
