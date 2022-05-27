@@ -11,7 +11,6 @@
 #include "sound.h"
 
 class Cartridge;
-class Lcd;
 class Input;
 
 class GameBoy {
@@ -21,7 +20,6 @@ public:
 	int nextInstruction();
 	int execute();
 	int prefixed_execute();
-	void screenUpdate(int clocks);
 	bool* getSoundEnable();
 	void setClockSpeed(float multiplier);
 	void runFor(int cycles);

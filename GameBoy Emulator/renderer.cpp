@@ -40,6 +40,7 @@ void Renderer::Init(int width, int height) {
 
 	//setting manu stuff
 	settingsMenu = false;
+
 	settingTabs = 0;
 	windowSizeSelectedItem = (char*)windowSizeItems[2];
 	gameSpeedSelectedItem = (char*)gameSpeedItems[2];

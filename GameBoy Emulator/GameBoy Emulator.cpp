@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::string filename;
 #ifdef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-    filename = "..\\..\\games\\F-1 Race (World).gb";
+    filename = "..\\..\\games\\Legend of Zelda, The - Link's Awakening (USA, Europe).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";
