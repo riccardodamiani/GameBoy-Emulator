@@ -231,7 +231,7 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 
 	if (!(io->LCDC & 0x20))		//window disabled
 		return;
-	if (io->LY < io->WY || io->WX < 7 || io->WX > 152)		//not shown
+	if (io->LY < io->WY || io->WX > 166)		//not shown
 		return;
 
 	//memory section for window tile map
@@ -239,7 +239,7 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 	
 	pixelRow = (io->LY - io->WY) % 8;
 	mapRow = (io->LY - io->WY) / 8;
-	for (uint8_t screenX = io->WX - 7; screenX < 160; screenX++) {
+	for (uint8_t screenX = std::max(io->WX - 7, 0); screenX < 160; screenX++) {
 		uint8_t tileMapX = screenX - io->WX + 7;
 		short tileNum;
 		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
