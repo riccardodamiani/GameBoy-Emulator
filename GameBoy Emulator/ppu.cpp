@@ -263,13 +263,19 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 	if (!(io->LCDC & 0x2))		//sprites are disabled
 		return;
 
-	int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
+	int spriteSize = 8;
+	uint8_t tileMask = 0xff;
+	if ((io->LCDC & 0x4)) {
+		spriteSize = 16;
+		//for 8x16 sprite tiles the lower bit of the tile number is ignored
+		tileMask = 0xfe;
+	}
 	//vertical flip
 	int row = io->LY - (sprite->y_pos - 16);
 	row = sprite->y_flip ? (spriteSize-1-row) : row;
 
 	int col = sprite->x_pos - 8;
-	uint8_t* spriteMem = &vram[sprite->tile * 16];
+	uint8_t* spriteMem = &vram[(sprite->tile & tileMask) * 16];
 	SDL_Color pixel;
 	uint8_t color;
 	uint8_t palette = (sprite->palette ? io->OBP1 : io->OBP0);

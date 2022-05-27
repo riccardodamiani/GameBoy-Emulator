@@ -194,10 +194,8 @@ void GameBoy::handleSerial(void) {
 int GameBoy::execute() {
 
 	uint16_t pc = this->registers.pc;
-	/*if (pc == 0x1d9f) {
-		pc = pc;
-	}
-	if (pc == 0x1e7e) {
+
+	/*if (pc == 0x1e7e) {
 		pc = pc;
 	}*/
 	uint8_t opcode = _memory->read(pc);
