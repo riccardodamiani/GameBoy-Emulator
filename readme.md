@@ -8,7 +8,7 @@ The code is written for Windows, however Windows API are only used for console s
 
 
 ## Not yet implemented
-- MBC3+TIMER, MBC4, MBC5 memory bank controllers
+- MBC3+TIMER, MBC4, memory bank controllers
 - Serial communication
 
 
