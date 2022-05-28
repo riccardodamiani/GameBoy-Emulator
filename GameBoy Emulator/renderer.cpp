@@ -83,14 +83,6 @@ void Renderer::ResizeWindow(int width, int height) {
 	io.DisplaySize.y = static_cast<float>(height);
 }
 
-void Renderer::turnOff() {
-	stopped = true;
-}
-
-void Renderer::turnOn() {
-	stopped = false;
-}
-
 void Renderer::showMessage(std::string message, float time) {
 	this->messageTimer = time;
 	this->message = message;

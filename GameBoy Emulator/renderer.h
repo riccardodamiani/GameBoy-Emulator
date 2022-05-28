@@ -27,8 +27,6 @@ public:
 	void RenderFrame(double elapsedTime);
 	double limit_fps(double elapsedTime, double maxFPS);
 	void showMessage(std::string message, float time);
-	void turnOff();
-	void turnOn();
 	std::pair <int, int> getWindowPosition();
 	std::pair <int, int> getWindowSize();
 	void ResizeWindow(int width, int height);
