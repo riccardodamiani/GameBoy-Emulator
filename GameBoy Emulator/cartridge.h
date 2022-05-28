@@ -51,6 +51,9 @@ namespace {
 		"MBC3",		//11
 		"MBC3+RAM",		//12
 		"MBC3+RAM+BATTERY",		//13
+		"MBC5",		//19
+		"MBC5+RAM",		//1A
+		"MBC5+RAM+BATTERY",		//1B
 	};
 };
 
@@ -100,6 +103,9 @@ private:
 	static uint32_t mbc3_rom_translate_func(uint16_t gb_addr);
 	static uint32_t mbc3_ram_translate_func(uint16_t gb_addr);
 	static void mbc3_rom_write(uint16_t gb_addr, uint8_t val);
+	static uint32_t mbc5_rom_translate_func(uint16_t gb_addr);
+	static uint32_t mbc5_ram_translate_func(uint16_t gb_addr);
+	static void mbc5_rom_write(uint16_t gb_addr, uint8_t val);
 };
 
 #endif

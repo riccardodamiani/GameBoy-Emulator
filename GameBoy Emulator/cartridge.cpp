@@ -79,6 +79,17 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->ramTranslateAddr = this->mbc3_ram_translate_func;
 		allocRamFromHeader();
 	}
+	else if (header->cartridgeType == 0x19 ||		//mbc5 chip
+		header->cartridgeType == 0x1a ||
+		header->cartridgeType == 0x1b) {
+		Cartridge::bank1_reg = 0;
+		Cartridge::bank2_reg = 1;
+
+		this->romWrite = this->mbc5_rom_write;
+		this->romTranslateAddr = this->mbc5_rom_translate_func;
+		this->ramTranslateAddr = this->mbc5_ram_translate_func;
+		allocRamFromHeader();
+	}
 
 }
 
@@ -438,5 +449,39 @@ void Cartridge::mbc3_rom_write(uint16_t gb_addr, uint8_t val) {
 	}
 	else if (gb_addr >= 0x4000 && gb_addr <= 0x5fff) {
 		ram_bank = val & 0x3;	//2 bit register (max 4 banks)
+	}
+}
+
+uint32_t Cartridge::mbc5_rom_translate_func(uint16_t gb_addr) {
+	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
+		return gb_addr;		//always mapped as bank 0
+	}
+	//0x4000 - 0x7fff range
+	return ((gb_addr & 0x3fff) | ((bank2_reg | (bank1_reg << 8)) << 14)) & rom_mask;
+}
+
+uint32_t Cartridge::mbc5_ram_translate_func(uint16_t gb_addr) {
+	return ((gb_addr & 0x1fff) | (ram_bank << 13)) & ram_mask;
+}
+
+
+void Cartridge::mbc5_rom_write(uint16_t gb_addr, uint8_t val) {
+	//enable and disable ram access
+	if (gb_addr >= 0 && gb_addr <= 0x1fff) {
+		if (val == 0xa) {
+			ram_access = true;
+			return;
+		}
+		ram_access = false;
+		return;
+	}
+	else if (gb_addr >= 0x2000 && gb_addr <= 0x2fff) {
+		bank2_reg = val;		//lower 8 bit rom bank number
+	}
+	else if (gb_addr >= 0x3000 && gb_addr <= 0x3fff) {
+		bank1_reg = val & 0x1;		//high 1 bit rom bank number
+	}
+	else if (gb_addr >= 0x4000 && gb_addr <= 0x5fff) {
+		ram_bank = val & 0xf;	//4 bit ram bank number
 	}
 }
