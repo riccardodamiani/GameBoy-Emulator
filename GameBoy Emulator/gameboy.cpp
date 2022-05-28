@@ -61,9 +61,7 @@ int GameBoy::nextInstruction() {
 	int m_cycles = 0;
 	IO_map* io_map = _memory->getIOMap();
 
-	if (!registers.stopped) {
-		m_cycles = handleInterrupt();
-	}
+	m_cycles = handleInterrupt();
 
 	if (!registers.halted && !registers.stopped) {
 		m_cycles += this->execute();
@@ -116,7 +114,6 @@ void GameBoy::handleJoypad(void) {
 		if (joypadStatus.a || joypadStatus.b || joypadStatus.select || joypadStatus.start ||
 			joypadStatus.right || joypadStatus.left || joypadStatus.up || joypadStatus.down) {
 			registers.stopped = false;
-			_renderer->turnOn();
 			return;
 		}
 	}
@@ -162,6 +159,7 @@ int GameBoy::handleInterrupt(void) {
 		for (int i = 0; i < 5; i++) {
 			if ((io_map->IF & (0x1 << i)) && (io_map->IE & (0x1 << i))) {
 				this->registers.halted = 0;
+				this->registers.stopped = 0;
 
 				uint16_t interrupt_vect_addr = 0x40 + 0x8 * i;
 				//PUSH PC
@@ -352,7 +350,6 @@ int GameBoy::execute() {
 	{
 		registers.stopped = true;
 		sound->Halt();
-		_renderer->turnOff();
 		registers.pc += 2;
 		return 1;
 	}
