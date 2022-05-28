@@ -51,6 +51,7 @@ void Renderer::Init(int width, int height) {
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
 	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
+	SDL_SetWindowInputFocus(_window);
 
 	ImGui::CreateContext();
 	ImGuiSDL::Initialize(_renderer, windowWidth, windowHeight);
