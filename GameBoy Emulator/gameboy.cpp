@@ -194,9 +194,7 @@ void GameBoy::handleSerial(void) {
 int GameBoy::execute() {
 
 	uint16_t pc = this->registers.pc;
-	if (pc == 0x5b68) {
-		pc = pc;
-	}
+
 	uint8_t opcode = _memory->read(pc);
 
 	switch (opcode) {
@@ -1630,6 +1628,7 @@ int GameBoy::execute() {
 	case 0xd3:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xd3\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xd4:		//CALL NC a16
 	{
@@ -1711,6 +1710,7 @@ int GameBoy::execute() {
 	case 0xdb:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xdb\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xdc:		//CALL C a16
 	{
@@ -1731,6 +1731,7 @@ int GameBoy::execute() {
 	case 0xdd:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xdd\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xde:		//SBC A, d8
 	{
@@ -1776,10 +1777,12 @@ int GameBoy::execute() {
 	case 0xe3:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xe3\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xe4:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xe4\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xe5:		//PUSH HL
 	{
@@ -1836,14 +1839,17 @@ int GameBoy::execute() {
 	case 0xeb:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xeb\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xec:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xec\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xed:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xed\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xee:		//XOR d8
 	{
@@ -1897,6 +1903,7 @@ int GameBoy::execute() {
 	case 0xf4:		//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xf4\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xf5:		//PUSH AF
 	{
@@ -1965,10 +1972,12 @@ int GameBoy::execute() {
 	case 0xfc:				//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xfc\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xfd:				//INVALID OPCODE
 	{
 		fatal(FATAL_INVALID_OPCODE, __func__, "\nOpcode: 0xfd\nPC = " + std::to_string(registers.pc));
+		break;
 	}
 	case 0xfe:		//CP, d8
 	{
@@ -2609,12 +2618,16 @@ int GameBoy::LD_r1_r2(uint8_t& reg1, uint8_t& reg2) {
 }
 
 int GameBoy::SBC_A_n(uint8_t& reg) {
-	uint8_t n = reg + this->registers.flag.c;
+	uint16_t n = reg + this->registers.flag.c;
 	
-	this->registers.flag.h = ((this->registers.a & 0xf) < (n & 0xf));
-	this->registers.flag.c = (this->registers.a < n);
+	//reg + carry-flag operation
+	this->registers.flag.h = (((reg & 0xf) + this->registers.flag.c) > 0xf);
+	this->registers.flag.c = (n > 0xff);
+	//subtruction operation
+	this->registers.flag.h |= ((this->registers.a & 0xf) < (n & 0xf));
+	this->registers.flag.c |= (this->registers.a < (n & 0xff));
 
-	this->registers.a -= n;
+	this->registers.a -= (n & 0xff);
 	this->registers.flag.z = (this->registers.a == 0);
 	this->registers.flag.n = 1;
 

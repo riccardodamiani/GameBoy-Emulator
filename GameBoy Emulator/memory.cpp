@@ -111,8 +111,6 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	//writing any value to the divider register resets it to 0
 	if (gb_address == 0xff04) value = 0;
-	if (gb_address == 0xff1e)
-		value = value;
 
 	this->gb_mem[gb_address] = value;
 
