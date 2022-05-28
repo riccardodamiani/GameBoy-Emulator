@@ -97,7 +97,7 @@ void Renderer::renderMessage(float elapsed) {
 	int size = std::min((int)message.size() * 9, windowWidth-10);
 	ImGui::SetNextWindowPos(ImVec2(windowWidth / 2 - size/2, 20));
 	ImGui::SetNextWindowSize(ImVec2(size, 40));
-	ImGui::Begin("popup", nullptr, ImGuiWindowFlags_NoTitleBar);
+	ImGui::Begin("message", nullptr, ImGuiWindowFlags_NoTitleBar);
 	ImGui::TextWrapped(message.c_str());
 	ImGui::End();
 }
