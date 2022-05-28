@@ -32,7 +32,7 @@ Keyboard map can be customized under menu/settings.
 | Game 									| State 		| Bugs |
 |---------------------------------------|---------------|-------|
 | Donkey kong 							| Great 		|		|
-| Donkey kong Land 						| Unplayable	| Major graphical issues |
+| Donkey kong Land 						| Playable 		|  		|
 | Donkey kong Land 2 					| Playable 		|     	|
 | Donkey kong Land 3 					| Playable 		|    	|
 | F-1 Race 								| Playable 		| 		|
