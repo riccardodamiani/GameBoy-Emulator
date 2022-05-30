@@ -54,6 +54,7 @@ void GameBoy::runFor(int cycles) {
 	while (clk < cycles*clockSpeed) {
 		clk += nextInstruction();
 	}
+	sound->UpdateSound(_memory->getIOMap());
 }
 
 int GameBoy::nextInstruction() {
@@ -80,7 +81,6 @@ int GameBoy::nextInstruction() {
 		handleSerial();
 		handleTimer(m_cycles);
 		_ppu->drawScanline(m_cycles*4);
-		sound->UpdateSound(io_map);
 	}
 
 	return m_cycles *4;
