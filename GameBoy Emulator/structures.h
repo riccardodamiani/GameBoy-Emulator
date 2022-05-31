@@ -69,6 +69,7 @@ struct sound_pulse_data {
 	float vol_sweep_update_timer;		//time to next volume update in seconds
 	int vol_sweep_dir;		//volume sweep direction: -1 decrease, 1 increase
 	int frequency_reg;
+	int init_frequency;		//frequency on channel init
 	float freq_sweep_timer;		//time between each frequency update in seconds
 	float freq_sweep_update_timer;		//time to next frequency update in seconds
 	int freq_sweep_amount;		//amount that is added to the frequency_reg register with sign
@@ -105,7 +106,9 @@ struct sound_wave_data {
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//volume register
-	float frequency;		//frequency of the wave
+	int init_volume;	//volume on init
+	float frequency;		//frequency register
+	float init_frequency;		//frequency on channel init
 };
 
 struct io_sound_wave_channel {
@@ -130,7 +133,7 @@ struct sound_noise_data {
 	float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int duty_cycle;
-	int volume;		//starting volume
+	int volume;		//init volume
 	float vol_sweep_step_len;		//time between each volume update in seconds
 	float vol_sweep_update_timer;		//time to next volume update in seconds
 	int vol_sweep_dir;		//volume sweep direction: -1 decrease, 1 increase

@@ -244,120 +244,136 @@ void Sound::UpdateSound(IO_map* io) {
         ch4->initial_volume = ch4->vol_sweep_dir = 0;
     }
     
-    //triggered ch1
-    if (ch1->trigger ) {
+    if (ch1->trigger ) {     //triggered ch1
         ch1->trigger = 0;
-        if (!channel1.trigger) {
-            trigger_channel1(ch1);
-        }
+        trigger_channel1(ch1);
+        
     }
     update_channel1_registers(ch1);
 
     if (ch2->trigger) {   //triggered ch2
         ch2->trigger = 0;
-        if (!channel2.trigger) {
-            trigger_channel2(ch2);
-        }
+        trigger_channel2(ch2);
+        
     }
     update_channel2_registers(ch2);
 
     if (ch3->trigger) {   //triggered ch3
         ch3->trigger = 0;
-        if (!channel3.trigger) {
-            trigger_channel3(ch3);
-        }
+        trigger_channel3(ch3);
+        
     }
     update_channel3_registers(ch3);
 
     if (ch4->trigger) {   //triggered ch4
         ch4->trigger = 0;
-        if (!channel4.trigger) {
-            trigger_channel4(ch4);
-        }
+        trigger_channel4(ch4);
+        
     }
     update_channel4_registers(ch4);
 }
 
 
 void Sound::update_channel1_registers(io_sound_pulse_channel* ch1) {
-    channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
-    channel1.len_counter_enable = ch1->len_count_enable;
-    channel1.frequency_reg = (ch1->freq_msb << 8) | ch1->freq_lsb;
-    channel1.freq_sweep_amount = (ch1->freq_sweep_dir == 1 ? -1 : 1) * ch1->freq_sweep_rtshift;
-    channel1.freq_sweep_timer = ch1->freq_sweep_timer == 0 ? 0 : ((double)(ch1->freq_sweep_timer + 1)) / 128.0;
     
+    int temp_freq = (ch1->freq_msb << 8) | ch1->freq_lsb;
+    if (channel1.init_frequency != temp_freq)
+        channel1.frequency_reg = channel1.init_frequency = temp_freq;
 }
 
 void Sound::update_channel2_registers(io_sound_pulse_channel *ch2) {
 
-    channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
-    channel2.frequency_reg = (ch2->freq_msb << 8) | ch2->freq_lsb;
-    channel2.len_counter_enable = ch2->len_count_enable;
-    
+    int temp_freq = (ch2->freq_msb << 8) | ch2->freq_lsb;
+    if (channel2.init_frequency != temp_freq)
+        channel2.frequency_reg = channel2.init_frequency = temp_freq;
 }
 
 void Sound::update_channel3_registers(io_sound_wave_channel *ch3) {
 
     uint16_t freq_reg = (ch3->freq_msb << 8) | ch3->freq_lsb;
-    channel3.frequency = 4194304.0 / ((2048 - freq_reg) << 5);
-    channel3.frequency /= 4;
-    channel3.volume = ch3->volume;
-    channel3.len_counter_enable = ch3->len_count_enable;
+    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 7);
+    //temp_freq /= 4;
+
+    if (channel3.init_frequency != temp_freq)
+        channel3.frequency = channel3.init_frequency = temp_freq;
+
+    if (ch3->volume != channel3.init_volume) {
+        channel3.volume = channel3.init_volume = ch3->volume;
+    }
+    
 }
 
 void Sound::update_channel4_registers(io_sound_noise_channel *ch4) {
-    channel4.len_counter_enable = ch4->len_count_enable;
+    
 }
 
 void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
-    channel1.trigger = 1;
-
+    
+    if (!channel1.trigger) {
+        channel1.sound_chunk_counter = 0;
+    }
+    channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
+    channel1.len_counter_enable = ch1->len_count_enable;
     channel1.freq_sweep_update_timer = 0;
     channel1.volume = ch1->initial_volume;
     channel1.vol_sweep_dir = (ch1->vol_sweep_dir == 0 ? -1 : 1);
     //souces say vol_sweep_step_len/64.0 but the sound seems to decay twice as fast as the orginal gameboy
     channel1.vol_sweep_step_len = (double)ch1->vol_sweep_step_len / 32.0;
+    channel1.freq_sweep_amount = (ch1->freq_sweep_dir == 1 ? -1 : 1) * ch1->freq_sweep_rtshift;
+    channel1.freq_sweep_timer = ch1->freq_sweep_timer == 0 ? 0 : ((double)(ch1->freq_sweep_timer + 1)) / 128.0;
     channel1.sound_len = (64 - ch1->len_counter) / 256.0;
+    
     channel1.sound_timer = 0;
-    channel1.sound_chunk_counter = 0;
     channel1.vol_sweep_update_timer = 0;
+
+    channel1.trigger = 1;
 }
 
 void Sound::trigger_channel2(io_sound_pulse_channel *ch2) {
-    channel2.trigger = 1;
+    if (!channel1.trigger) {
+        channel2.sound_chunk_counter = 0;
+    }
 
     //these are not used in channel 2
     channel2.freq_sweep_amount = 0;     //channel 2 doesn't have frequency sweep
     channel2.freq_sweep_timer = 0;
     channel2.freq_sweep_update_timer = 0;
 
+    channel2.len_counter_enable = ch2->len_count_enable;
+    channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
     channel2.volume = ch2->initial_volume;
     channel2.vol_sweep_dir = (ch2->vol_sweep_dir == 0 ? -1 : 1);
     //souces say vol_sweep_step_len/64.0 but the sound seems to decay twice as fast as the orginal gameboy
     channel2.vol_sweep_step_len = (double)ch2->vol_sweep_step_len / 32.0;
     channel2.sound_len = (64 - ch2->len_counter) / 256.0;
     channel2.sound_timer = 0;
-    channel2.sound_chunk_counter = 0;
     channel2.vol_sweep_update_timer = 0;
 
+    channel2.trigger = 1;
 }
 
 void Sound::trigger_channel3(io_sound_wave_channel *ch3) {
-    channel3.trigger = 1;
+    
+    if (!channel3.trigger)
+        channel3.sound_chunk_counter = 0;
 
+    channel3.len_counter_enable = ch3->len_count_enable;
     channel3.sound_len = (64 - ch3->len_counter) / 256.0;
     channel3.sound_timer = 0;
-    channel3.sound_chunk_counter = 0;
+
+    channel3.trigger = 1;
 }
 
 void Sound::trigger_channel4(io_sound_noise_channel *ch4) {
-    channel4.trigger = 1;
+    if(!channel4.trigger)
+        channel4.sound_chunk_counter = 0;
 
     float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
     channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
     channel4.sound_len = (64 - ch4->len_counter) / 256.0;
     channel4.sound_timer = 0;
-    channel4.sound_chunk_counter = 0;
+    channel4.len_counter_enable = ch4->len_count_enable;
+   
     channel4.duty_cycle = ch4->duty_cycle;
     channel4.lfsr_width = ch4->shift_reg_width;
     channel4.volume = ch4->initial_volume;
@@ -367,6 +383,8 @@ void Sound::trigger_channel4(io_sound_noise_channel *ch4) {
     channel4.vol_sweep_update_timer = 0;
     channel4.lfsr_output_timer = 0;
     channel4.lfsr = 0xffff;
+
+    channel4.trigger = 1;
 }
 
 void Sound::Halt() {

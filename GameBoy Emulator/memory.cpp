@@ -114,6 +114,8 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	this->gb_mem[gb_address] = value;
 
+
+
 	if (gb_address == 0xff46)
 		oam_dma_copy();
 
