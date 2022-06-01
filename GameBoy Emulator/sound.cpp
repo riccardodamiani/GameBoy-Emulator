@@ -14,10 +14,10 @@
 #define SAMPLE_RATE 44100
 
 #define DEFAULT_VOLUME 200.0
-#define CHANNEL1_VOLUME 150.0
-#define CHANNEL2_VOLUME 150.0
-#define CHANNEL3_VOLUME 250.0
-#define CHANNEL4_VOLUME 120.0
+#define CHANNEL1_VOLUME 200.0
+#define CHANNEL2_VOLUME 200.0
+#define CHANNEL3_VOLUME 220.0
+#define CHANNEL4_VOLUME 150.0
 
 
 void update_signal_counter(int &counter, int freq, float period1) {
@@ -280,7 +280,7 @@ void Sound::UpdateSound(IO_map* io) {
     }
     update_channel1_registers(ch1);
 
-   if (ch2->trigger) {   //triggered ch2
+    if (ch2->trigger) {   //triggered ch2
         ch2->trigger = 0;
         trigger_channel2(ch2);
         
@@ -373,7 +373,7 @@ void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
 }
 
 void Sound::trigger_channel2(io_sound_pulse_channel *ch2) {
-    if (!channel1.trigger) {
+    if (!channel2.trigger) {
         channel2.sound_chunk_counter = 0;
     }
 
