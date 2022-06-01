@@ -175,7 +175,7 @@ void ch3_callback(int channel, void* stream, int len, void* udata) {
             int index = (int)((t / period) * 32.0);
             uint16_t sample = (data.wave_pattern[index / 2] >> (4 * (1 - (index & 0x1)))) & 0xf;
             sample = (data.volume == 0) ? 0 : (sample >> (data.volume - 1));
-            audio[i * 256 + j] = sample * CHANNEL3_VOLUME;     //adjustments for channel mixing
+            audio[i * 256 + j] = sample * CHANNEL3_VOLUME;
             data.sound_chunk_counter++;
         }
         //frequency update
@@ -185,11 +185,11 @@ void ch3_callback(int channel, void* stream, int len, void* udata) {
             update_signal_counter_wave(data.sound_chunk_counter, data.frequency, period);
         }
         //sound len counter
-        data.sound_timer += 256.0 / SAMPLE_RATE;
+        /*data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
             data.trigger = 0;
             return;
-        }
+        }*/
     }
 }
 
@@ -257,18 +257,18 @@ void Sound::UpdateSound(IO_map* io) {
     }
     
     //channel DACs are off or volume is killed?
-    if (/*ch1->initial_volume == 0 || */(ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
+    if ((ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
         channel1.trigger = 0;
         ch1->initial_volume = ch1->vol_sweep_dir = 0;
     }
-    if (/*ch2->initial_volume == 0 || */(ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
+    if ((ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
         channel2.trigger = 0;
         ch2->initial_volume = ch2->vol_sweep_dir = 0;
     }
-    if (ch3->volume == 0 || !ch3->master_switch) {
+    if (!ch3->master_switch) {
         channel3.trigger = 0;
     }
-    if (/*ch4->initial_volume == 0 ||*/ (ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
+    if ((ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
         channel4.trigger = 0;
         ch4->initial_volume = ch4->vol_sweep_dir = 0;
     }
@@ -305,11 +305,14 @@ void Sound::UpdateSound(IO_map* io) {
 
 void Sound::update_channel1_registers(io_sound_pulse_channel* ch1) {
     
+    channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
     int temp_freq = (ch1->freq_msb << 8) | ch1->freq_lsb;
     if (channel1.init_frequency != temp_freq)
         channel1.new_frequency = temp_freq;
 
-    if (channel1.len_counter_enable) {
+    //channel1.len_counter_enable = ch1->len_count_enable;
+
+    if (ch1->len_count_enable) {
         channel1.sound_len -= 0.0167;
         if (channel1.sound_len <= 0) {
             channel1.trigger = 0;
@@ -319,11 +322,14 @@ void Sound::update_channel1_registers(io_sound_pulse_channel* ch1) {
 
 void Sound::update_channel2_registers(io_sound_pulse_channel *ch2) {
 
+    channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
     int temp_freq = (ch2->freq_msb << 8) | ch2->freq_lsb;
     if (channel2.init_frequency != temp_freq)
         channel2.new_frequency = temp_freq;
 
-    if (channel2.len_counter_enable) {
+    //channel2.len_counter_enable = ch2->len_count_enable;
+
+    if (ch2->len_count_enable) {
         channel2.sound_len -= 0.0167;
         if (channel2.sound_len <= 0) {
             channel2.trigger = 0;
@@ -334,14 +340,20 @@ void Sound::update_channel2_registers(io_sound_pulse_channel *ch2) {
 void Sound::update_channel3_registers(io_sound_wave_channel *ch3) {
 
     uint16_t freq_reg = (ch3->freq_msb << 8) | ch3->freq_lsb;
-    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 5);
-    temp_freq /= 4;
+    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 7);
 
     if (channel3.init_frequency != temp_freq)
         channel3.new_frequency = temp_freq;
 
     if (ch3->volume != channel3.init_volume) {
         channel3.volume = channel3.init_volume = ch3->volume;
+    }
+
+    if (ch3->len_count_enable) {
+        channel3.sound_len -= 0.0167;
+        if (channel3.sound_len <= 0) {
+            channel3.trigger = 0;
+        }
     }
 }
 
