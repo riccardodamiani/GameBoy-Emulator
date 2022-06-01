@@ -20,16 +20,68 @@
 #define CHANNEL4_VOLUME 120.0
 
 
+void update_signal_counter(int &counter, int freq, float period1) {
+    float f2 = 4194304.0 / ((float)((2048 - freq) << 6));
+    float p2 = SAMPLE_RATE / f2;
+    counter = counter * p2 / period1;
+}
+
+void update_signal_counter_wave(int& counter, float f2, float period1) {
+    float p2 = SAMPLE_RATE / f2;
+    counter = counter * p2 / period1;
+}
+
+void sweep_frequency(sound_pulse_data &data) {
+    data.freq_sweep_update_timer += 256.0 / SAMPLE_RATE;
+    if (data.freq_sweep_timer != 0 && data.freq_sweep_update_timer > data.freq_sweep_timer) {
+        data.freq_sweep_update_timer -= data.freq_sweep_timer;
+        data.frequency_reg += data.freq_sweep_amount;
+        if (data.frequency_reg + data.freq_sweep_amount > 0x7ff ||
+            data.frequency_reg + data.freq_sweep_amount <= 0) {
+            data.trigger = 0;
+            return;
+        }
+    }
+}
+
+void sweep_volume(sound_pulse_data &data) {
+    data.vol_sweep_update_timer += 256.0 / SAMPLE_RATE;
+    if (data.vol_sweep_step_len != 0 && data.vol_sweep_update_timer >= data.vol_sweep_step_len) {
+        data.vol_sweep_update_timer -= data.vol_sweep_step_len;
+
+        data.volume += data.vol_sweep_dir;
+        if (data.volume <= 0) {
+            data.trigger = 0;
+            return;
+        }
+        if (data.volume > 0xf)
+            data.volume = 0xf;
+    }
+}
+void sweep_volume(sound_noise_data& data) {
+    data.vol_sweep_update_timer += 256.0 / SAMPLE_RATE;
+    if (data.vol_sweep_step_len != 0 && data.vol_sweep_update_timer >= data.vol_sweep_step_len) {
+        data.vol_sweep_update_timer -= data.vol_sweep_step_len;
+
+        data.volume += data.vol_sweep_dir;
+        if (data.volume <= 0) {
+            data.trigger = 0;
+            return;
+        }
+        if (data.volume > 0xf)
+            data.volume = 0xf;
+    }
+}
+
 void ch1_callback(int channel, void* stream, int len, void* udata) {
     sound_pulse_data& data( *((sound_pulse_data *)udata));
     uint16_t* audio = (uint16_t*)stream;
 
     memset(stream, 0, len);
-
     if (!data.trigger) {
         return;
     }
-
+    
     for (int i = 0; i < len / 512; i++) {
         float freq = 4194304.0 / ((float)((2048 - (data.frequency_reg)) << 6));
         float period = SAMPLE_RATE / freq;
@@ -44,39 +96,26 @@ void ch1_callback(int channel, void* stream, int len, void* udata) {
             else
                 audio[i * 256 + j] = 0;
               
-
             data.sound_chunk_counter++;
         }
-        //frequency sweep
-        data.freq_sweep_update_timer += 256.0 / SAMPLE_RATE;
-        if (data.freq_sweep_timer != 0 && data.freq_sweep_update_timer > data.freq_sweep_timer) {
-            data.freq_sweep_update_timer -= data.freq_sweep_timer;
-            data.frequency_reg += data.freq_sweep_amount;
-            if (data.frequency_reg + data.freq_sweep_amount > 0x7ff || 
-                data.frequency_reg + data.freq_sweep_amount <= 0) {
-                data.trigger = 0;
-                return;
-            }
+        //frequency update
+        if (data.new_frequency != data.init_frequency) {
+            data.init_frequency = data.frequency_reg = data.new_frequency;
+            //remove clicking noises
+            update_signal_counter(data.sound_chunk_counter, data.frequency_reg, period); 
         }
-        //volume sweep
-        data.vol_sweep_update_timer += 256.0 / SAMPLE_RATE;
-        if (data.vol_sweep_step_len != 0 && data.vol_sweep_update_timer >= data.vol_sweep_step_len) {
-            data.vol_sweep_update_timer -= data.vol_sweep_step_len;
-            
-            data.volume += data.vol_sweep_dir;
-            if (data.volume <= 0) {
-                data.trigger = 0;
-                return;
-            }
-            if (data.volume > 0xf)
-                data.volume = 0xf;
+        sweep_frequency(data);
+        sweep_volume(data);
+
+        if (!data.trigger) {
+            return;
         }
         //sound len counter
-        data.sound_timer += 256.0 / SAMPLE_RATE;
+        /*data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
             data.trigger = 0;
             return;
-        }
+        }*/
     }
 }
 
@@ -95,7 +134,6 @@ void ch2_callback(int channel, void* stream, int len, void* udata) {
         float period = SAMPLE_RATE / freq;
         float on = period * data.duty_cycle;
         for (int j = 0; j < 256; j++) {
-            //audio[i * 256 + j] = data.volume * 1000 * (sin(2 * M_PI * data.sound_chunk_counter / period));
             float t = fmod(data.sound_chunk_counter, period);
             if (t < on)
                 audio[i * 256 + j] = data.volume * CHANNEL2_VOLUME;
@@ -103,25 +141,19 @@ void ch2_callback(int channel, void* stream, int len, void* udata) {
                 audio[i * 256 + j] = 0;
             data.sound_chunk_counter++;
         }
-        //volume sweep
-        data.vol_sweep_update_timer += 256.0 / SAMPLE_RATE;
-        if (data.vol_sweep_step_len != 0 && data.vol_sweep_update_timer >= data.vol_sweep_step_len) {
-            data.vol_sweep_update_timer -= data.vol_sweep_step_len;
-
-            data.volume += data.vol_sweep_dir;
-            if (data.volume <= 0) {
-                data.trigger = 0;
-                return;
-            }
-            if (data.volume > 0xf)
-                data.volume = 0xf;
+        //frequency update
+        if (data.new_frequency != data.init_frequency) {
+            data.init_frequency = data.frequency_reg = data.new_frequency;
+            //remove clicking noises
+            update_signal_counter(data.sound_chunk_counter, data.frequency_reg, period);
         }
+        sweep_volume(data);
         //sound len counter
-        data.sound_timer += 256.0 / SAMPLE_RATE;
+        /*data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
             data.trigger = 0;
             return;
-        }
+        }*/
     }
 }
 
@@ -136,14 +168,21 @@ void ch3_callback(int channel, void* stream, int len, void* udata) {
     }
     
     for (int i = 0; i < len / 512; i++) {
+        float period = SAMPLE_RATE / data.frequency;
         for (int j = 0; j < 256; j++) {
-            float period = SAMPLE_RATE / data.frequency;
+            
             float t = fmod(data.sound_chunk_counter, period);
             int index = (int)((t / period) * 32.0);
             uint16_t sample = (data.wave_pattern[index / 2] >> (4 * (1 - (index & 0x1)))) & 0xf;
             sample = (data.volume == 0) ? 0 : (sample >> (data.volume - 1));
             audio[i * 256 + j] = sample * CHANNEL3_VOLUME;     //adjustments for channel mixing
             data.sound_chunk_counter++;
+        }
+        //frequency update
+        if (data.new_frequency != data.init_frequency) {
+            data.init_frequency = data.frequency = data.new_frequency;
+            //remove clicking noises
+            update_signal_counter_wave(data.sound_chunk_counter, data.frequency, period);
         }
         //sound len counter
         data.sound_timer += 256.0 / SAMPLE_RATE;
@@ -184,20 +223,10 @@ void ch4_callback(int channel, void* stream, int len, void* udata) {
             }
 
         }
-        //volume sweep
-        data.vol_sweep_update_timer += 256.0 / SAMPLE_RATE;
-        if (data.vol_sweep_step_len != 0 && data.vol_sweep_update_timer >= data.vol_sweep_step_len) {
-            data.vol_sweep_update_timer -= data.vol_sweep_step_len;
-
-            data.volume += data.vol_sweep_dir;
-            if (data.volume <= 0) {
-                data.trigger = 0;
-                return;
-            }
-            if (data.volume > 0xf)
-                data.volume = 0xf;
+        sweep_volume(data);
+        if (!data.trigger) {
+            return;
         }
-
         //sound len counter
         data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
@@ -228,18 +257,18 @@ void Sound::UpdateSound(IO_map* io) {
     }
     
     //channel DACs are off or volume is killed?
-    if (ch1->initial_volume == 0 || (ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
+    if (/*ch1->initial_volume == 0 || */(ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
         channel1.trigger = 0;
         ch1->initial_volume = ch1->vol_sweep_dir = 0;
     }
-    if (ch2->initial_volume == 0 || (ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
+    if (/*ch2->initial_volume == 0 || */(ch2->initial_volume | ch2->vol_sweep_dir) == 0) {
         channel2.trigger = 0;
         ch2->initial_volume = ch2->vol_sweep_dir = 0;
     }
-    if (/*ch3->volume == 0 || */!ch3->master_switch) {
+    if (ch3->volume == 0 || !ch3->master_switch) {
         channel3.trigger = 0;
     }
-    if (ch4->initial_volume == 0 || (ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
+    if (/*ch4->initial_volume == 0 ||*/ (ch4->initial_volume | ch4->vol_sweep_dir) == 0) {
         channel4.trigger = 0;
         ch4->initial_volume = ch4->vol_sweep_dir = 0;
     }
@@ -251,7 +280,7 @@ void Sound::UpdateSound(IO_map* io) {
     }
     update_channel1_registers(ch1);
 
-    if (ch2->trigger) {   //triggered ch2
+   if (ch2->trigger) {   //triggered ch2
         ch2->trigger = 0;
         trigger_channel2(ch2);
         
@@ -278,33 +307,46 @@ void Sound::update_channel1_registers(io_sound_pulse_channel* ch1) {
     
     int temp_freq = (ch1->freq_msb << 8) | ch1->freq_lsb;
     if (channel1.init_frequency != temp_freq)
-        channel1.frequency_reg = channel1.init_frequency = temp_freq;
+        channel1.new_frequency = temp_freq;
+
+    if (channel1.len_counter_enable) {
+        channel1.sound_len -= 0.0167;
+        if (channel1.sound_len <= 0) {
+            channel1.trigger = 0;
+        }
+    }
 }
 
 void Sound::update_channel2_registers(io_sound_pulse_channel *ch2) {
 
     int temp_freq = (ch2->freq_msb << 8) | ch2->freq_lsb;
     if (channel2.init_frequency != temp_freq)
-        channel2.frequency_reg = channel2.init_frequency = temp_freq;
+        channel2.new_frequency = temp_freq;
+
+    if (channel2.len_counter_enable) {
+        channel2.sound_len -= 0.0167;
+        if (channel2.sound_len <= 0) {
+            channel2.trigger = 0;
+        }
+    }
 }
 
 void Sound::update_channel3_registers(io_sound_wave_channel *ch3) {
 
     uint16_t freq_reg = (ch3->freq_msb << 8) | ch3->freq_lsb;
-    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 7);
-    //temp_freq /= 4;
+    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 5);
+    temp_freq /= 4;
 
     if (channel3.init_frequency != temp_freq)
-        channel3.frequency = channel3.init_frequency = temp_freq;
+        channel3.new_frequency = temp_freq;
 
     if (ch3->volume != channel3.init_volume) {
         channel3.volume = channel3.init_volume = ch3->volume;
     }
-    
 }
 
 void Sound::update_channel4_registers(io_sound_noise_channel *ch4) {
-    
+
 }
 
 void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
@@ -314,6 +356,7 @@ void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
     }
     channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
     channel1.len_counter_enable = ch1->len_count_enable;
+    channel1.new_frequency = channel1.frequency_reg = channel1.init_frequency = (ch1->freq_msb << 8) | ch1->freq_lsb;
     channel1.freq_sweep_update_timer = 0;
     channel1.volume = ch1->initial_volume;
     channel1.vol_sweep_dir = (ch1->vol_sweep_dir == 0 ? -1 : 1);
@@ -338,6 +381,7 @@ void Sound::trigger_channel2(io_sound_pulse_channel *ch2) {
     channel2.freq_sweep_amount = 0;     //channel 2 doesn't have frequency sweep
     channel2.freq_sweep_timer = 0;
     channel2.freq_sweep_update_timer = 0;
+    channel2.new_frequency = channel2.frequency_reg = channel2.init_frequency = (ch2->freq_msb << 8) | ch2->freq_lsb;
 
     channel2.len_counter_enable = ch2->len_count_enable;
     channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
@@ -357,6 +401,10 @@ void Sound::trigger_channel3(io_sound_wave_channel *ch3) {
     if (!channel3.trigger)
         channel3.sound_chunk_counter = 0;
 
+    uint16_t freq_reg = (ch3->freq_msb << 8) | ch3->freq_lsb;
+    float temp_freq = 4194304.0 / ((2048 - freq_reg) << 7);
+    channel3.frequency = channel3.init_frequency = channel3.new_frequency = temp_freq;
+    channel3.volume = channel3.init_volume = ch3->volume;
     channel3.len_counter_enable = ch3->len_count_enable;
     channel3.sound_len = (64 - ch3->len_counter) / 256.0;
     channel3.sound_timer = 0;
@@ -404,23 +452,23 @@ Sound::Sound()
     int bufferLen = 5;
 
     //allocate 2 seconds of sound for each channel
-    channel1.chunk.alen = SAMPLE_RATE * 2 * bufferLen;
+    channel1.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;       //makes sure the buffer len is a multiple of 4096 
     channel1.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel1.chunk.allocated = 1;
     channel1.chunk.volume = 255;
 
-    channel2.chunk.alen = SAMPLE_RATE * 2 * bufferLen;
+    channel2.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel2.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel2.chunk.allocated = 1;
     channel2.chunk.volume = 255;
 
-    channel3.chunk.alen = SAMPLE_RATE * 2 * bufferLen;
+    channel3.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel3.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel3.chunk.allocated = 1;
     channel3.chunk.volume = 255;
     channel3.wave_pattern = _memory->getIOMap()->WP;
 
-    channel4.chunk.alen = SAMPLE_RATE * 2 * bufferLen;
+    channel4.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel4.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel4.chunk.allocated = 1;
     channel4.chunk.volume = 255;

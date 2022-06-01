@@ -60,6 +60,7 @@ struct sound_pulse_data {
 	Mix_Chunk chunk;		//sound data
 	int sound_chunk_counter;
 	float duty_cycle;
+	float init_sound_len;
 	float sound_len;	//sound duration in seconds
 	float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
@@ -69,13 +70,12 @@ struct sound_pulse_data {
 	float vol_sweep_update_timer;		//time to next volume update in seconds
 	int vol_sweep_dir;		//volume sweep direction: -1 decrease, 1 increase
 	int frequency_reg;
+	int new_frequency;
 	int init_frequency;		//frequency on channel init
 	float freq_sweep_timer;		//time between each frequency update in seconds
 	float freq_sweep_update_timer;		//time to next frequency update in seconds
 	int freq_sweep_amount;		//amount that is added to the frequency_reg register with sign
 };
-
-
 
 struct io_sound_pulse_channel {
 	uint8_t freq_sweep_rtshift : 3,	//amount that is added to the frequency register with sign controlled by freq_sweep_dir
@@ -109,6 +109,7 @@ struct sound_wave_data {
 	int init_volume;	//volume on init
 	float frequency;		//frequency register
 	float init_frequency;		//frequency on channel init
+	float new_frequency;
 };
 
 struct io_sound_wave_channel {
