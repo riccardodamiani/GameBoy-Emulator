@@ -464,22 +464,26 @@ Sound::Sound()
     int bufferLen = 5;
 
     //allocate 2 seconds of sound for each channel
+    memset(&channel1, 0, sizeof(channel1));
     channel1.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;       //makes sure the buffer len is a multiple of 4096 
     channel1.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel1.chunk.allocated = 1;
     channel1.chunk.volume = 255;
 
+    memset(&channel2, 0, sizeof(channel2));
     channel2.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel2.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel2.chunk.allocated = 1;
     channel2.chunk.volume = 255;
 
+    memset(&channel3, 0, sizeof(channel3));
     channel3.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel3.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel3.chunk.allocated = 1;
     channel3.chunk.volume = 255;
     channel3.wave_pattern = _memory->getIOMap()->WP;
 
+    memset(&channel4, 0, sizeof(channel4));
     channel4.chunk.alen = SAMPLE_RATE * 2 * bufferLen - 2728;
     channel4.chunk.abuf = (uint8_t*)calloc(SAMPLE_RATE * bufferLen, 2);
     channel4.chunk.allocated = 1;
