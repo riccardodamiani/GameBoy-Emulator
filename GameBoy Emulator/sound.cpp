@@ -51,6 +51,7 @@ void sweep_volume(sound_pulse_data &data) {
 
         data.volume += data.vol_sweep_dir;
         if (data.volume <= 0) {
+            data.volume = 0xf;
             data.trigger = 0;
             return;
         }
@@ -205,19 +206,21 @@ void ch4_callback(int channel, void* stream, int len, void* udata) {
 
     uint8_t lfsr_output = 1;
     for (int i = 0; i < len / 512; i++) {
+        int lfsr_width = data.lfsr_width;
+        float lfsr_period = data.lfsr_period;
         for (int j = 0; j < 256; j++) {
-            audio[i*256 + j] = lfsr_output ? CHANNEL4_VOLUME * data.volume: 0;     //adjustments for channel mixing
+            audio[i*256 + j] = lfsr_output ? CHANNEL4_VOLUME * data.volume: 0;
             data.sound_chunk_counter++;
 
             //update linear feedback shift register
             data.lfsr_output_timer += 1.0 / SAMPLE_RATE;
-            if (data.lfsr_output_timer > data.lfsr_period) {
-                data.lfsr_output_timer -= data.lfsr_period;
+            if (data.lfsr_output_timer > lfsr_period) {
+                data.lfsr_output_timer -= lfsr_period;
 
                 data.lfsr >>= 1;
                 lfsr_output = data.lfsr & 0x1;      //takes the output
                 uint8_t t_bit = (lfsr_output ^ (data.lfsr >> 1)) & 0x1;       //bit that become the msb
-                uint8_t r_shift = (data.lfsr_width * 8);
+                uint8_t r_shift = (lfsr_width * 8);
                 data.lfsr &= (0x7fff >> r_shift);       //clear msb
                 data.lfsr |= (t_bit << (15 - r_shift));      //ORs new msb
             }
@@ -311,6 +314,8 @@ void Sound::update_channel1_registers(io_sound_pulse_channel* ch1) {
         channel1.new_frequency = temp_freq;
 
     //channel1.len_counter_enable = ch1->len_count_enable;
+    /*channel1.vol_sweep_dir = (ch1->vol_sweep_dir == 0 ? -1 : 1);
+    channel1.vol_sweep_step_len = (double)ch1->vol_sweep_step_len / 32.0;*/
 
     if (ch1->len_count_enable) {
         channel1.sound_len -= 0.0167;
@@ -328,6 +333,8 @@ void Sound::update_channel2_registers(io_sound_pulse_channel *ch2) {
         channel2.new_frequency = temp_freq;
 
     //channel2.len_counter_enable = ch2->len_count_enable;
+    /*channel2.vol_sweep_dir = (ch2->vol_sweep_dir == 0 ? -1 : 1);
+    channel2.vol_sweep_step_len = (double)ch2->vol_sweep_step_len / 32.0;*/
 
     if (ch2->len_count_enable) {
         channel2.sound_len -= 0.0167;
@@ -358,7 +365,9 @@ void Sound::update_channel3_registers(io_sound_wave_channel *ch3) {
 }
 
 void Sound::update_channel4_registers(io_sound_noise_channel *ch4) {
-
+    float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
+    channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
+    channel4.lfsr_width = ch4->shift_reg_width;
 }
 
 void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
