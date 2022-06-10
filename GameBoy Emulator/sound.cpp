@@ -152,6 +152,9 @@ void ch2_callback(int channel, void* stream, int len, void* udata) {
             update_signal_counter(data.sound_chunk_counter, data.frequency_reg, period);
         }
         sweep_volume(data);
+        if (!data.trigger) {
+            return;
+        }
         //sound len counter
         /*data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
@@ -236,11 +239,11 @@ void ch4_callback(int channel, void* stream, int len, void* udata) {
             return;
         }
         //sound len counter
-        data.sound_timer += 256.0 / SAMPLE_RATE;
+       /* data.sound_timer += 256.0 / SAMPLE_RATE;
         if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
             data.trigger = 0;
             return;
-        }
+        }*/
     }
 }
 
@@ -346,6 +349,13 @@ void Sound::update_channel4_registers(io_sound_noise_channel *ch4) {
     float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
     channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
     channel4.lfsr_width = ch4->shift_reg_width;
+
+    if (ch4->len_count_enable) {
+        channel4.sound_len -= 0.0167;
+        if (channel4.sound_len <= 0) {
+            channel4.trigger = 0;
+        }
+    }
 }
 
 void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
@@ -353,8 +363,6 @@ void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
     if (!channel1.trigger) {
         channel1.sound_chunk_counter = 0;
     }
-    
-    channel1.len_counter_enable = ch1->len_count_enable;
     
     channel1.volume = ch1->initial_volume;
     channel1.vol_sweep_dir = (ch1->vol_sweep_dir == 0 ? -1 : 1);
@@ -364,7 +372,7 @@ void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
     channel1.freq_sweep_amount = (ch1->freq_sweep_dir == 1 ? -1 : 1) * ch1->freq_sweep_rtshift;
     channel1.freq_sweep_timer = ch1->freq_sweep_timer == 0 ? 0 : ((double)(ch1->freq_sweep_timer + 1)) / 128.0;
 
-    channel1.sound_timer = 0;
+    //channel1.sound_timer = 0;
     channel1.vol_sweep_update_timer = 0;
 
     channel1.trigger = 1;
@@ -384,9 +392,8 @@ void Sound::trigger_channel2(io_sound_pulse_channel *ch2) {
     channel2.vol_sweep_dir = (ch2->vol_sweep_dir == 0 ? -1 : 1);
 
     channel2.vol_sweep_step_len = (double)ch2->vol_sweep_step_len / 32.0;
-    channel2.len_counter_enable = ch2->len_count_enable;
 
-    channel2.sound_timer = 0;
+    //channel2.sound_timer = 0;
     channel2.vol_sweep_update_timer = 0;
 
     channel2.trigger = 1;
@@ -398,9 +405,7 @@ void Sound::trigger_channel3(io_sound_wave_channel *ch3) {
         channel3.sound_chunk_counter = 0;
 
     channel3.volume = channel3.init_volume = ch3->volume;
-    channel3.len_counter_enable = ch3->len_count_enable;
-
-    channel3.sound_timer = 0;
+    //channel3.sound_timer = 0;
 
     channel3.trigger = 1;
 }
@@ -412,7 +417,7 @@ void Sound::trigger_channel4(io_sound_noise_channel *ch4) {
     float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
     channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
 
-    channel4.sound_timer = 0;
+    //channel4.sound_timer = 0;
     channel4.len_counter_enable = ch4->len_count_enable;
     
     channel4.lfsr_width = ch4->shift_reg_width;
@@ -456,22 +461,24 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         channel1.frequency_write = true;
         return;
     }
-    if (addr == 0xff14) { //triggered channel 1
+    if (addr == 0xff14) {    //control channel 1
         channel1.new_frequency = (ch1->freq_msb << 8) | (channel1.new_frequency & 0x00ff);
         channel1.frequency_write = true;
-
+        channel1.len_counter_enable = ch1->len_count_enable;
         if(val & 0x80)
             trigger_channel1(ch1);
         return;
     }
+
     if (addr == 0xff18) {       //channel 2 frequency
         channel2.new_frequency = (channel2.new_frequency & 0xff00) | ch2->freq_lsb;
         channel2.frequency_write = true;
         return;
     }
-    if (addr == 0xff19) {   //triggered channel 2
+    if (addr == 0xff19) {   //control channel 2
         channel2.new_frequency = (ch2->freq_msb << 8) | (channel2.new_frequency & 0x00ff);
         channel2.frequency_write = true;
+        channel2.len_counter_enable = ch2->len_count_enable;
 
         if (val & 0x80)
             trigger_channel2(ch2);
@@ -483,10 +490,10 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         channel3.frequency_write = true;
         return;
     }
-    if (addr == 0xff1e) {   //triggered channel 3
+    if (addr == 0xff1e) {   //control channel 3
         channel3.new_frequency = (ch3->freq_msb << 8) | (channel3.new_frequency & 0x00ff);
         channel3.frequency_write = true;
-
+        channel3.len_counter_enable = ch3->len_count_enable;
         if (val & 0x80)
             trigger_channel3(ch3);
         return;
@@ -496,6 +503,7 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         trigger_channel4(ch4);
         return;
     }
+
     if (addr == 0xff11) {       //sound len channel 1
         channel1.sound_len = (64 - ch1->len_counter) / 256.0;
         channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);

@@ -62,7 +62,7 @@ struct sound_pulse_data {
 	float duty_cycle;
 	float init_sound_len;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//starting volume
@@ -102,7 +102,7 @@ struct sound_wave_data {
 	Mix_Chunk chunk;		//sound data
 	int sound_chunk_counter;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//volume register
@@ -131,7 +131,7 @@ struct sound_noise_data {
 	int trigger;
 	int sound_chunk_counter;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int duty_cycle;
 	int volume;		//init volume
