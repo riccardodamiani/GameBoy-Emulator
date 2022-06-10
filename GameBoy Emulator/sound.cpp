@@ -113,12 +113,6 @@ void ch1_callback(int channel, void* stream, int len, void* udata) {
         if (!data.trigger) {
             return;
         }
-        //sound len counter
-        /*data.sound_timer += 256.0 / SAMPLE_RATE;
-        if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
-            data.trigger = 0;
-            return;
-        }*/
     }
 }
 
@@ -155,12 +149,6 @@ void ch2_callback(int channel, void* stream, int len, void* udata) {
         if (!data.trigger) {
             return;
         }
-        //sound len counter
-        /*data.sound_timer += 256.0 / SAMPLE_RATE;
-        if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
-            data.trigger = 0;
-            return;
-        }*/
     }
 }
 
@@ -193,12 +181,6 @@ void ch3_callback(int channel, void* stream, int len, void* udata) {
             //remove clicking noises
             update_signal_counter_wave(data.sound_chunk_counter, data.frequency, period);
         }
-        //sound len counter
-        /*data.sound_timer += 256.0 / SAMPLE_RATE;
-        if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
-            data.trigger = 0;
-            return;
-        }*/
     }
 }
 
@@ -238,12 +220,6 @@ void ch4_callback(int channel, void* stream, int len, void* udata) {
         if (!data.trigger) {
             return;
         }
-        //sound len counter
-       /* data.sound_timer += 256.0 / SAMPLE_RATE;
-        if (data.len_counter_enable && data.sound_timer >= data.sound_len) {
-            data.trigger = 0;
-            return;
-        }*/
     }
 }
 
@@ -281,32 +257,9 @@ void Sound::UpdateSound(IO_map* io) {
         channel4.trigger = 0;
     }
     
-    /*if (ch1->trigger ) {     //triggered ch1
-        ch1->trigger = 0;
-        trigger_channel1(ch1);
-        
-    }*/
     update_channel1_registers(ch1);
-
-    /*if (ch2->trigger) {   //triggered ch2
-        ch2->trigger = 0;
-        trigger_channel2(ch2);
-        
-    }*/
     update_channel2_registers(ch2);
-
-    /*if (ch3->trigger) {   //triggered ch3
-        ch3->trigger = 0;
-        trigger_channel3(ch3);
-        
-    }*/
     update_channel3_registers(ch3);
-
-   /* if (ch4->trigger) {   //triggered ch4
-        ch4->trigger = 0;
-        trigger_channel4(ch4);
-        
-    }*/
     update_channel4_registers(ch4);
 }
 
@@ -456,12 +409,17 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
     io_sound_wave_channel* ch3 = (io_sound_wave_channel*)&io->NR30;
     io_sound_noise_channel* ch4 = (io_sound_noise_channel*)&io->NOT_MAPPED_3;     //corrisponding to NR40
 
-    if (addr == 0xff13) {       //channel 1 frequency
+    if (addr == 0xff11) {       //channel 1: sound len 
+        channel1.sound_len = (64 - ch1->len_counter) / 256.0;
+        channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
+        return;
+    }
+    if (addr == 0xff13) {       //channel 1: frequency
         channel1.new_frequency = (channel1.new_frequency & 0xff00) | ch1->freq_lsb;
         channel1.frequency_write = true;
         return;
     }
-    if (addr == 0xff14) {    //control channel 1
+    if (addr == 0xff14) {    //channel 1: control
         channel1.new_frequency = (ch1->freq_msb << 8) | (channel1.new_frequency & 0x00ff);
         channel1.frequency_write = true;
         channel1.len_counter_enable = ch1->len_count_enable;
@@ -470,12 +428,17 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         return;
     }
 
-    if (addr == 0xff18) {       //channel 2 frequency
+    if (addr == 0xff16) {       //channel 2: sound len
+        channel2.sound_len = (64 - ch2->len_counter) / 256.0;
+        channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
+        return;
+    }
+    if (addr == 0xff18) {       //channel 2: frequency
         channel2.new_frequency = (channel2.new_frequency & 0xff00) | ch2->freq_lsb;
         channel2.frequency_write = true;
         return;
     }
-    if (addr == 0xff19) {   //control channel 2
+    if (addr == 0xff19) {   //channel 2: control
         channel2.new_frequency = (ch2->freq_msb << 8) | (channel2.new_frequency & 0x00ff);
         channel2.frequency_write = true;
         channel2.len_counter_enable = ch2->len_count_enable;
@@ -485,12 +448,16 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         return;
     }
 
-    if (addr == 0xff1d) {       //channel 3 frequency
+    if (addr == 0xff1b) {       //channel 3: sound len
+        channel3.sound_len = (256 - ch3->len_counter) / 256.0;
+        return;
+    }
+    if (addr == 0xff1d) {       //channel 3: frequency
         channel3.new_frequency = (channel3.new_frequency & 0xff00) | ch3->freq_lsb;
         channel3.frequency_write = true;
         return;
     }
-    if (addr == 0xff1e) {   //control channel 3
+    if (addr == 0xff1e) {   //channel 3: control
         channel3.new_frequency = (ch3->freq_msb << 8) | (channel3.new_frequency & 0x00ff);
         channel3.frequency_write = true;
         channel3.len_counter_enable = ch3->len_count_enable;
@@ -499,30 +466,22 @@ void Sound::updateReg(uint16_t addr, uint8_t val) {
         return;
     }
 
-    if (addr == 0xff23 && (val & 0x80)) { //triggered channel 4
-        trigger_channel4(ch4);
-        return;
-    }
-
-    if (addr == 0xff11) {       //sound len channel 1
-        channel1.sound_len = (64 - ch1->len_counter) / 256.0;
-        channel1.duty_cycle = ch1->duty_cycle == 0 ? 0.125 : (0.25 * ch1->duty_cycle);
-        return;
-    }
-    if (addr == 0xff16) {       //sound len channel 2
-        channel2.sound_len = (64 - ch2->len_counter) / 256.0;
-        channel2.duty_cycle = ch2->duty_cycle == 0 ? 0.125 : (0.25 * ch2->duty_cycle);
-        return;
-    }
-    if (addr == 0xff1b) {       //sound len channel 3
-        channel3.sound_len = (256 - ch3->len_counter) / 256.0;
-        return;
-    }
-    if (addr == 0xff20) {       //sound len channel 4
+    if (addr == 0xff20) {       //channel 4: sound len
         channel4.sound_len = (64 - ch4->len_counter) / 256.0;
         channel4.duty_cycle = ch4->duty_cycle;
         return;
     }
+    if (addr == 0xff23 && (val & 0x80)) {   //channel 4: control
+        channel4.len_counter_enable = ch4->len_count_enable;
+        if (val & 0x80)
+            trigger_channel4(ch4);
+        return;
+    }
+
+    
+    
+   
+    
 }
 
 Sound::Sound()
