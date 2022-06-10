@@ -10,6 +10,8 @@ public:
 	void UpdateSound(IO_map* io);
 	void Halt();
 	bool* getSoundEnable();
+	void updateReg(uint16_t address, uint8_t val);
+	void Init();
 private:
 	void update_channel1_registers(io_sound_pulse_channel* ch1);
 	void update_channel2_registers(io_sound_pulse_channel *ch2);

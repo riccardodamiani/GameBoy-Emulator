@@ -33,14 +33,13 @@ bool GameBoy::Init() {
 
 	//init joypad stuff
 	this->registers.joyp_stat = 1;	
-	this->sound = new Sound();
 
 	return true;
 }
 
-bool* GameBoy::getSoundEnable() {
+/*bool* GameBoy::getSoundEnable() {
 	return this->sound->getSoundEnable();
-}
+}*/
 
 
 void GameBoy::setClockSpeed(float multiplier) {
@@ -54,7 +53,7 @@ void GameBoy::runFor(int cycles) {
 	while (clk < cycles*clockSpeed) {
 		clk += nextInstruction();
 	}
-	sound->UpdateSound(_memory->getIOMap());
+	//sound->UpdateSound(_memory->getIOMap());
 }
 
 int GameBoy::nextInstruction() {
@@ -349,7 +348,7 @@ int GameBoy::execute() {
 	case 0x10:		//STOP d8
 	{
 		registers.stopped = true;
-		sound->Halt();
+		_sound->Halt();
 		registers.pc += 2;
 		return 1;
 	}

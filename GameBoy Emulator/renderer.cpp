@@ -176,7 +176,7 @@ void Renderer::imguiFrame(float elapsed) {
 		}
 
 		if (settingTabs == 0) {		//sound settings
-			ImGui::Checkbox("Enable sound", _gameboy->getSoundEnable());
+			ImGui::Checkbox("Enable sound", _sound->getSoundEnable());
 		}
 		else if (settingTabs == 1) {		//gameboy settings
 			if (ImGui::BeginCombo("Game speed", gameSpeedSelectedItem))

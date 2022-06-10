@@ -1,6 +1,7 @@
 #include "memory.h"
 #include "errors.h"
 #include "globals.h"
+#include "sound.h"
 
 #include <fstream>
 #include <string>
@@ -114,7 +115,10 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	this->gb_mem[gb_address] = value;
 
-
+	if (gb_address >= 0xff10 && gb_address <= 0xff26) {		//audio registers
+		_sound->updateReg(gb_address, value);
+		return;
+	}
 
 	if (gb_address == 0xff46)
 		oam_dma_copy();

@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::string filename;
 #ifdef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-    filename = "..\\..\\games\\Kirby's Dream Land (USA, Europe).gb";
+    filename = "..\\..\\games\\Faceball 2000 (USA).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";
@@ -52,6 +52,7 @@ int main(int argc, char** argv)
     _ppu->Init();
     _gameboy->Init();
     _renderer->Init(160 * 4, 144 * 4);
+    _sound->Init();
 
     mainRoutine();
 
