@@ -106,7 +106,7 @@ struct sound_wave_data {
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//volume register
-	int init_volume;	//volume on init
+	//int init_volume;	//volume on init
 	uint16_t frequency;		//frequency register
 	uint16_t new_frequency;
 	bool frequency_write;

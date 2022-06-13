@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::string filename;
 #ifdef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-    filename = "..\\..\\games\\Pokemon Red (UE) [S][!].gb";
+    filename = "..\\..\\games\\V-Rally - Championship Edition (Europe) (En,Fr,De).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";

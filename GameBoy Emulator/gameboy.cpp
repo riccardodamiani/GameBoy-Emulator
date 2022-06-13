@@ -53,7 +53,7 @@ void GameBoy::runFor(int cycles) {
 	while (clk < cycles*clockSpeed) {
 		clk += nextInstruction();
 	}
-	//sound->UpdateSound(_memory->getIOMap());
+	_sound->UpdateSound(_memory->getIOMap());
 }
 
 int GameBoy::nextInstruction() {
