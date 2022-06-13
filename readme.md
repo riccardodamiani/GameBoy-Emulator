@@ -36,7 +36,7 @@ Keyboard map can be customized under menu/settings.
 | Donkey kong Land 2 					| Playable 		|     	|
 | Donkey kong Land 3 					| Playable 		|    	|
 | F-1 Race 								| Playable 		| 		|
-| Faceball 2000 						| Playable 		| Audio issues |
+| Faceball 2000 						| Playable 		| Wave audio channel doesn't work |
 | Ferrari Grand Prix Challenge			| Playable 		| 		|
 | Legend of Zelda (Link's awakening)	| Great			|		|
 | Pokemon Red							| Great			|		|
