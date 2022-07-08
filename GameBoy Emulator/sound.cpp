@@ -16,7 +16,7 @@
 #define DEFAULT_VOLUME 200.0
 #define CHANNEL1_VOLUME 200.0
 #define CHANNEL2_VOLUME 200.0
-#define CHANNEL3_VOLUME 220.0
+#define CHANNEL3_VOLUME 200.0
 #define CHANNEL4_VOLUME 150.0
 
 
@@ -232,18 +232,12 @@ void Sound::UpdateSound(IO_map* io) {
 
     //audio chip is powered off or emulator is muted
     if (!(io->NR52 & 0x80) || !enableSound) {
-        ch1->trigger = 0;
-        ch2->trigger = 0;
-        ch3->trigger = 0;
-        ch4->trigger = 0;
-        channel1.trigger = 0;
-        channel2.trigger = 0;
-        channel3.trigger = 0;
-        channel4.trigger = 0;
+        ch1->trigger = ch2->trigger = ch3->trigger = ch4->trigger = 0;
+        channel1.trigger = channel2.trigger = channel3.trigger = channel4.trigger = 0;
         return;
     }
     
-    //channel DACs are off or volume is killed?
+    //channel DACs are off?
     if ((ch1->initial_volume | ch1->vol_sweep_dir) == 0) {
         channel1.trigger = 0;
     }
@@ -309,7 +303,7 @@ void Sound::trigger_channel1(io_sound_pulse_channel* ch1) {
     if (!channel1.trigger) {
         channel1.sound_chunk_counter = 0;
     }
-    
+
     channel1.volume = ch1->initial_volume;
     channel1.vol_sweep_dir = (ch1->vol_sweep_dir == 0 ? -1 : 1);
     channel1.vol_sweep_step_len = (double)ch1->vol_sweep_step_len / 32.0;
@@ -330,7 +324,7 @@ void Sound::trigger_channel2(io_sound_pulse_channel *ch2) {
     }
 
     //these are not used in channel 2
-    channel2.freq_sweep_amount = 0;     //channel 2 doesn't have frequency sweep
+    channel2.freq_sweep_amount = 0;
     channel2.freq_sweep_timer = 0;
     channel2.freq_sweep_update_timer = 0;
     
@@ -350,7 +344,7 @@ void Sound::trigger_channel3(io_sound_wave_channel *ch3) {
     if (!channel3.trigger)
         channel3.sound_chunk_counter = 0;
 
-    channel3.volume = ch3->volume;
+    //channel3.volume = ch3->volume;
     //channel3.sound_timer = 0;
 
     channel3.trigger = 1;
@@ -360,13 +354,13 @@ void Sound::trigger_channel4(io_sound_noise_channel *ch4) {
     if(!channel4.trigger)
         channel4.sound_chunk_counter = 0;
 
-    float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
-    channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
+    //float div_ratio = ch4->div_freq_ratio == 0 ? 0.5 : ch4->div_freq_ratio;
+    //channel4.lfsr_period = 1.0 / ((524288.0 / div_ratio) / (2 << (ch4->shift_clk_freq + 1)));
 
     //channel4.sound_timer = 0;
     channel4.len_counter_enable = ch4->len_count_enable;
     
-    channel4.lfsr_width = ch4->shift_reg_width;
+    //channel4.lfsr_width = ch4->shift_reg_width;
     channel4.volume = ch4->initial_volume;
     channel4.vol_sweep_dir = (ch4->vol_sweep_dir == 0 ? -1 : 1);
 

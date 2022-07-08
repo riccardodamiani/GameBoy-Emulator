@@ -24,15 +24,16 @@ GameBoy::GameBoy(){
 bool GameBoy::Init() {
 	
 	clockSpeed = 1;
+	registers.clock_cnt = 0;
 	time_clock = 0;
-	joypadStatus = {};
 
 	//init mem
 	memset(&this->registers, 0, sizeof(this->registers));
 	this->registers.pc = 0;
 
 	//init joypad stuff
-	this->registers.joyp_stat = 1;	
+	this->registers.joyp_stat = 1;
+	joypadStatus = {};
 
 	return true;
 }
@@ -58,7 +59,7 @@ void GameBoy::runFor(int cycles) {
 
 int GameBoy::nextInstruction() {
 
-	int m_cycles = 0;
+	unsigned int m_cycles = 0;
 	IO_map* io_map = _memory->getIOMap();
 
 	m_cycles = handleInterrupt();
@@ -82,7 +83,8 @@ int GameBoy::nextInstruction() {
 		_ppu->drawScanline(m_cycles*4);
 	}
 
-	return m_cycles *4;
+	registers.clock_cnt += m_cycles * 4;
+	return m_cycles * 4;
 }
 
 
@@ -421,7 +423,7 @@ int GameBoy::execute() {
 		char jump = _memory->read(pc + 1);
 		this->registers.pc = (unsigned)((short)this->registers.pc + jump);
 		this->registers.pc += 2;
-		return 2;
+		return 3;
 	}
 	case 0x19:		//ADD HL, DE
 	{
@@ -1545,7 +1547,7 @@ int GameBoy::execute() {
 	case 0xcb:		//PREFIX
 	{
 		this->registers.pc += 1;
-		return prefixed_execute() + 1;
+		return prefixed_execute();
 	}
 	case 0xcc:		//CALL Z a16
 	{
@@ -1755,7 +1757,7 @@ int GameBoy::execute() {
 		uint16_t gb_addr = 0xff00 + _memory->read(pc + 1);
 		_memory->write(gb_addr, this->registers.a);
 		this->registers.pc += 2;
-		return 4;
+		return 3;
 	}
 	case 0xe1:			//POP HL
 	{
@@ -1985,7 +1987,7 @@ int GameBoy::execute() {
 		this->registers.flag.h = ((this->registers.a & 0xf) < (d & 0xf));
 		this->registers.flag.c = (this->registers.a < d);
 		this->registers.pc += 2;
-		return 1;
+		return 2;
 	}
 	case 0xff:		//RST 0x38
 	{

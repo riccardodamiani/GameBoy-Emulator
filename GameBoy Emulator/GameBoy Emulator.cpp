@@ -15,8 +15,9 @@
 
 
 void mainRoutine() {
+    double totTime = 0;
     double elapsedTime = 0;
-    while (1) {
+    while(1) {
         auto startTime = std::chrono::high_resolution_clock::now();
 
         _input->beginNewFrame();
@@ -28,7 +29,9 @@ void mainRoutine() {
         elapsedTime = elapsed.count();	//elapsed time in seconds
 
         elapsedTime += _renderer->limit_fps(elapsedTime, 60);
+        totTime += elapsedTime;
     }
+
 }
 
 #undef main
@@ -38,7 +41,7 @@ int main(int argc, char** argv)
     std::string filename;
 #ifdef _DEBUG
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-    filename = "..\\..\\games\\V-Rally - Championship Edition (Europe) (En,Fr,De).gb";
+    filename = "..\\..\\games\\Super Mario Land 2 - 6 Golden Coins (USA, Europe).gb";
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
     std::cout << "Drop the rom file here: ";

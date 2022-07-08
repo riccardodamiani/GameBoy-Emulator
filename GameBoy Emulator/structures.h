@@ -185,7 +185,7 @@ struct registers {
 	uint8_t joyp_stat;		//previous joypad stat. Used to trigger a joypad IRQ
 	uint8_t halted;
 	uint8_t stopped;
-	//uint8_t stat_signal;
+	uint64_t clock_cnt;
 };
 
 struct ppu_registers {
