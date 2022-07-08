@@ -60,8 +60,9 @@ struct sound_pulse_data {
 	Mix_Chunk chunk;		//sound data
 	int sound_chunk_counter;
 	float duty_cycle;
+	float init_sound_len;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//starting volume
@@ -69,12 +70,12 @@ struct sound_pulse_data {
 	float vol_sweep_update_timer;		//time to next volume update in seconds
 	int vol_sweep_dir;		//volume sweep direction: -1 decrease, 1 increase
 	int frequency_reg;
+	int new_frequency;
+	bool frequency_write;
 	float freq_sweep_timer;		//time between each frequency update in seconds
 	float freq_sweep_update_timer;		//time to next frequency update in seconds
 	int freq_sweep_amount;		//amount that is added to the frequency_reg register with sign
 };
-
-
 
 struct io_sound_pulse_channel {
 	uint8_t freq_sweep_rtshift : 3,	//amount that is added to the frequency register with sign controlled by freq_sweep_dir
@@ -101,11 +102,14 @@ struct sound_wave_data {
 	Mix_Chunk chunk;		//sound data
 	int sound_chunk_counter;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int trigger;	//1 when the channel is active
 	int volume;		//volume register
-	float frequency;		//frequency of the wave
+	//int init_volume;	//volume on init
+	uint16_t frequency;		//frequency register
+	uint16_t new_frequency;
+	bool frequency_write;
 };
 
 struct io_sound_wave_channel {
@@ -127,10 +131,10 @@ struct sound_noise_data {
 	int trigger;
 	int sound_chunk_counter;
 	float sound_len;	//sound duration in seconds
-	float sound_timer;	//time elapsed
+	//float sound_timer;	//time elapsed
 	int len_counter_enable;		//1 if len counter is enable
 	int duty_cycle;
-	int volume;		//starting volume
+	int volume;		//init volume
 	float vol_sweep_step_len;		//time between each volume update in seconds
 	float vol_sweep_update_timer;		//time to next volume update in seconds
 	int vol_sweep_dir;		//volume sweep direction: -1 decrease, 1 increase
@@ -181,7 +185,7 @@ struct registers {
 	uint8_t joyp_stat;		//previous joypad stat. Used to trigger a joypad IRQ
 	uint8_t halted;
 	uint8_t stopped;
-	//uint8_t stat_signal;
+	uint64_t clock_cnt;
 };
 
 struct ppu_registers {

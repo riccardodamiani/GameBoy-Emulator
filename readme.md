@@ -36,16 +36,16 @@ Keyboard map can be customized under menu/settings.
 | Donkey kong Land 2 					| Playable 		|     	|
 | Donkey kong Land 3 					| Playable 		|    	|
 | F-1 Race 								| Playable 		| 		|
-| Faceball 2000 						| Playable 		| 		|
-| Ferrari Grand Prix Challenge			| Playable 		| Audio issues |
+| Faceball 2000 						| Playable 		| Wave audio channel doesn't work |
+| Ferrari Grand Prix Challenge			| Playable 		| 		|
 | Legend of Zelda (Link's awakening)	| Great			|		|
 | Pokemon Red							| Great			|		|
 | Super Mario Land						| Great			|		|
-| Super Mario Land 2					| Fine			| Minor audio issues |
+| Super Mario Land 2					| Fine			|  		|
 | Wario Land - Super Mario Land 3 		| Playable		|		|
 | Super Mario Land 4 					| Playable		|		|
-| Kirby's Dream Land					| Fine			| Minor audio issues |
-| Kirby's Dream Land 2 					| Fine			| Audio issues |
+| Kirby's Dream Land					| Fine			|		|
+| Kirby's Dream Land 2 					| Fine			|		|
 | Tetris (World)						| Great			|		|
 | Space Invaders						| Great			|		|
 | Metroid II 							| Playable		|		|

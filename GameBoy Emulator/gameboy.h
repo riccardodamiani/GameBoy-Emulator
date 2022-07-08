@@ -20,13 +20,13 @@ public:
 	int nextInstruction();
 	int execute();
 	int prefixed_execute();
-	bool* getSoundEnable();
+	//bool* getSoundEnable();
 	void setClockSpeed(float multiplier);
 	void runFor(int cycles);
 private:
 	struct registers registers;
 	
-	Sound* sound;
+	//Sound* sound;
 	joypad joypadStatus;
 	float clockSpeed;
 
