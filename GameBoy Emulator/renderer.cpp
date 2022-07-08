@@ -48,7 +48,7 @@ void Renderer::Init(int width, int height) {
 
 	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");		//needed otherwise imgui breaks when resizing the window
 	_window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, this->windowWidth, this->windowHeight, 0);
-	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
+	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
 	SDL_SetWindowTitle(this->_window, "Gameboy Emulator");
 	SDL_GetWindowPosition(_window, &windowPosX, &windowPosY);
 	SDL_SetWindowInputFocus(_window);
@@ -61,7 +61,7 @@ void Renderer::Init(int width, int height) {
 
 }
 
-//sleeps for the time needed to have a FPS. Returns the time it have sleeped
+//sleeps for the time needed to have a FPS. Returns the time it have slept
 double Renderer::limit_fps(double elapsedTime, double maxFPS) {
 	if (elapsedTime >= (1.0 / maxFPS)) {
 		return 0;
