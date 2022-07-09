@@ -48,7 +48,7 @@ private:
 	uint32_t screenBuffers[2][23040];		//screen buffers with pixel format rgba
 	uint32_t* tempBuffer;	//used to provide a copy of the buffer to render to the renderer
 	int activeBuffer;		//index of the buffer being modified
-	uint8_t* vram;
+	uint8_t* vram[2];	//vram banks
 	std::mutex bufferMutex;
 	SDL_Color* dmg_palette;
 
