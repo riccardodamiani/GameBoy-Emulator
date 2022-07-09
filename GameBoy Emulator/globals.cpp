@@ -21,6 +21,8 @@ namespace {
 		t_p = new Ppu();
 		t_m = new Memory();
 		t_s = new Sound();
+
+		_GBC_Mode = false;
 		return true;
 	}
 	bool a = Init_all();
