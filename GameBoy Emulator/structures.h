@@ -48,7 +48,8 @@ struct sprite_attribute {
 	uint8_t y_pos;
 	uint8_t x_pos;
 	uint8_t tile;
-	uint8_t unused : 4,		//GB color only
+	uint8_t gbc_palette : 3,		//GBC only. Palette number
+		vram_bank : 1,		//GBC only. Vram bank number
 		palette : 1,	//sprite palette number
 		x_flip : 1,
 		y_flip : 1,
