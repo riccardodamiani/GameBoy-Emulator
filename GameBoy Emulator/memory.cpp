@@ -37,29 +37,49 @@ void Memory::Init(const char* rom_filename) {
 }
 
 bool Memory::load_bootrom() {
+
 	std::ifstream bootrom_file;
+	
+	boot_rom0 = (uint8_t*)malloc(256);
 
 	if (!_GBC_Mode) {
-		bootrom_size = 256;
+
 		bootrom_file.open("bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
+		if (!bootrom_file.is_open()) 
+			fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
+
+		std::streampos size = bootrom_file.tellg();
+		if (size != 256) fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
+
+		bootrom_file.seekg(0, std::ios::beg);
+		bootrom_file.read((char*)boot_rom0, 256);
+		bootrom_file.close();
 	}
 	else {
-		bootrom_size = 2304;
+
 		bootrom_file.open("gbc_bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
+		if (!bootrom_file.is_open())
+			fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
+
+		boot_rom1 = (uint8_t*)malloc(1792);
+
+		std::streampos size = bootrom_file.tellg();
+		//2304 bootrom have 256 empty bytes between the two sections
+		if (size == 2304) {
+			bootrom_file.seekg(0, std::ios::beg);
+			bootrom_file.read((char*)boot_rom0, 256);
+			bootrom_file.seekg(512, std::ios::beg);
+			bootrom_file.read((char*)boot_rom1, 1792);
+			bootrom_file.close();
+		}
+		else if (size == 2048) {		//no empty bytes between sections
+			bootrom_file.seekg(0, std::ios::beg);
+			bootrom_file.read((char*)boot_rom0, 256);
+			bootrom_file.read((char*)boot_rom1, 1792);
+			bootrom_file.close();
+		}
+		else fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
 	}
-
-	if (!bootrom_file.is_open())
-		fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
-
-	std::streampos size = bootrom_file.tellg();
-	if (size != bootrom_size)
-		fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
-
-	boot_rom = (uint8_t* )malloc(bootrom_size);
-
-	bootrom_file.seekg(0, std::ios::beg);
-	bootrom_file.read((char*)this->boot_rom, bootrom_size);
-	bootrom_file.close();
 
 	return true;
 }
@@ -91,14 +111,26 @@ uint8_t* Memory::getOam() {
 	return this->oam;
 }
 
+/*
 uint8_t* Memory::translateAddr(uint16_t addr) {
-	if (this->io_map->BRC == 0 && addr < 0x100) {		//intercept accesses to 0x0000 - 0x00ff (boot rom)
-		return (uint8_t*)(addr + this->boot_rom);
+	if (!_GBC_Mode) {
+		if (this->io_map->BRC == 0 && addr < 0x100) {		//intercept accesses to 0x0000 - 0x00ff (boot rom)
+			return (uint8_t*)(addr + this->boot_rom0);
+		}
 	}
+	else {
+		if (this->io_map->BRC == 0 && addr < 0x100) {		//first section of bootrom
+			return (uint8_t*)(addr + this->boot_rom0);
+		}
+		if (this->io_map->BRC == 0 && addr >= 0x200 && addr <= 0x8ff) {		//second section of bootrom
+			return (uint8_t*)(addr + this->boot_rom0);
+		}
+	}
+	
 
 	return (uint8_t*)(addr + this->gb_mem);
 }
-
+*/
 
 //translate the gameboy address into a real memory address and read a byte
 uint8_t Memory::read(uint16_t gb_address) {
@@ -109,11 +141,15 @@ uint8_t Memory::read(uint16_t gb_address) {
 		return 0xff;
 	}*/
 
-	if (this->io_map->BRC == 0 && gb_address < bootrom_size) {	//bootstrap rom
-		return this->boot_rom[gb_address];
+	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//first section bootstrap rom
+		return this->boot_rom0[gb_address];
 	}
 
 	if (_GBC_Mode) {
+		if (this->io_map->BRC == 0 && gb_address >= 0x200 && gb_address<= 0x8ff) {	//second section bootstrap rom
+			return this->boot_rom1[gb_address-0x200];
+		}
+
 		if (gb_address == 0xff69) {		//read a byte from the bg palette memory
 			return bg_palette_mem[palette_access->bg_palette_index];
 		}
@@ -140,13 +176,13 @@ uint8_t Memory::read(uint16_t gb_address) {
 SDL_Color Memory::getBackgroundColor(int palette, int num) {
 	
 	color_palette *gb_c = (color_palette*)&bg_palette_mem[(palette * 4 + num) * 2];
-	SDL_Color c = { gb_c->red*8, gb_c->green*8, gb_c->blue*8, 255};
+	SDL_Color c = { gb_c->red * 8.2, gb_c->green * 8.2, gb_c->blue * 8.2, 255 };
 	return c;
 }
 
 SDL_Color Memory::getSpriteColor(int palette, int num) {
 	color_palette* gb_c = (color_palette*)&sprite_palette_mem[(palette * 4 + num) * 2];
-	SDL_Color c = { gb_c->red * 8, gb_c->green * 8, gb_c->blue * 8, 255 };
+	SDL_Color c = { gb_c->red * 8.2, gb_c->green * 8.2, gb_c->blue * 8.2, 255 };
 	return c;
 }
 
