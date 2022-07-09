@@ -335,7 +335,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 			continue;
 
 		if (_GBC_Mode) {
-			SDL_Color pixel = _memory->getBackgroundColor(sprite->gbc_palette, color_nr);
+			SDL_Color pixel = _memory->getSpriteColor(sprite->gbc_palette, color_nr);
 			//draw the pixel
 			memcpy(&scanlineBuffer[col + i], &pixel, 4);
 			continue;
