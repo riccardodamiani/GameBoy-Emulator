@@ -13,7 +13,10 @@ Memory::Memory() {
 }
 
 void Memory::Init(const char* rom_filename) {
-	vram = (uint8_t*)(this->gb_mem + 0x8000);
+	vram = (uint8_t**)(calloc(2, sizeof(uint8_t*)));
+	vram[0] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
+	vram[1] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
+
 	wram = (uint8_t*)(this->gb_mem + 0xc000);
 	io_map = (IO_map*)(this->gb_mem + 0xff00);
 	oam = this->gb_mem + 0xfe00;
@@ -36,6 +39,9 @@ void Memory::Init(const char* rom_filename) {
 	
 	memset(this->gb_mem, 0, sizeof(this->gb_mem));
 	io_map->JOYP = 0xff;
+	hdma_attr = (hdma_struct*)&io_map->HR[0];		//gbc only
+	palette_access = (palette_access_struct*)&io_map->HR[23];		//gbc only
+
 	this->cart = new Cartridge(rom_filename);
 
 }
@@ -47,7 +53,8 @@ void Memory::saveCartridgeState() {
 }
 
 uint8_t* Memory::getVram(void) {
-	return this->vram;
+	if (_GBC_Mode) return this->vram[io_map->VBK & 0x1];
+	return this->vram[0];
 }
 
 IO_map* Memory::getIOMap(void) {
@@ -80,6 +87,20 @@ uint8_t Memory::read(uint16_t gb_address) {
 		return this->boot_rom[gb_address];
 	}
 
+	if (_GBC_Mode) {
+		if (gb_address == 0xff69) {		//read a byte from the bg palette memory
+			return bg_palette_mem[palette_access->bg_palette_index];
+		}
+		if (gb_address == 0xff6b) {		//read a byte from the sprite palette memory
+			return sprite_palette_mem[palette_access->sprite_palette_index];
+		}
+	}
+
+	if (gb_address >= 0x8000 && gb_address <= 0x9fff) {		//vram
+		if (_GBC_Mode) return vram[io_map->VBK & 0x1][gb_address & 0x7fff];
+		return vram[0][gb_address & 0x7fff];
+	}
+
 	if ((gb_address >= 0 && gb_address <= 0x7fff) || (gb_address >= 0xa000 && gb_address <= 0xbfff)) {		//cartridge address
 		cart_ram_AccessMutex.lock();
 		uint8_t byte = this->cart->read(gb_address);
@@ -103,6 +124,15 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 		return;
 	}
 
+	if (gb_address >= 0x8000 && gb_address <= 0x9fff) {		//vram
+		if (_GBC_Mode) {
+			vram[io_map->VBK & 0x1][gb_address & 0x7fff] = value;
+			return;
+		}
+		vram[0][gb_address & 0x7fff] = value;
+		return;
+	}
+
 	if ((gb_address >= 0 && gb_address <= 0x7fff) || (gb_address >= 0xa000 && gb_address <= 0xbfff)) {		//cartridge address
 		cart_ram_AccessMutex.lock();
 		this->cart->write(gb_address, value);
@@ -112,6 +142,19 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	//writing any value to the divider register resets it to 0
 	if (gb_address == 0xff04) value = 0;
+
+	if (_GBC_Mode) {
+		if (gb_address == 0xff69) {		//write a byte to the bg palette memory
+			bg_palette_mem[palette_access->bg_palette_index] = value;
+			palette_access->bg_palette_index += palette_access->bg_inc;
+			return;
+		}
+		if (gb_address == 0xff6b) {		//write a byte to the sprite palette memory
+			sprite_palette_mem[palette_access->sprite_palette_index] = value;
+			palette_access->sprite_palette_index += palette_access->sprite_inc;
+			return;
+		}
+	}
 
 	this->gb_mem[gb_address] = value;
 
