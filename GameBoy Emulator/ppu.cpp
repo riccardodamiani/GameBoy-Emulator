@@ -117,7 +117,7 @@ void Ppu::drawScanline(int clk_cycles){
 				sprite_attribute* sprites[40];
 				memset(registers.scanlineSprites, 0, sizeof(registers.scanlineSprites));
 				for (int i = 0; i < 40; i++) sprites[i] = &((sprite_attribute*)oam)[i];
-				sort(sprites, 40);
+				if(!_GBC_Mode) sort(sprites, 40);
 				int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
 				int j = 0;
 				for (int i = 39; i >= 0; i--) {
