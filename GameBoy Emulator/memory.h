@@ -20,6 +20,8 @@ public:
 	IO_map* getIOMap();
 	uint8_t* getOam();
 	void saveCartridgeState();
+	SDL_Color getBackgroundColor(int palette, int num);
+	SDL_Color getSpriteColor(int palette, int num);
 private:
 	bool load_bootrom();
 

@@ -7,6 +7,8 @@
 #include <string>
 #include <mutex>
 
+bool _GBC_Mode;
+
 Memory::Memory() {
 	
 
@@ -126,6 +128,19 @@ uint8_t Memory::read(uint16_t gb_address) {
 	}
 
 	return this->gb_mem[gb_address];
+}
+
+SDL_Color Memory::getBackgroundColor(int palette, int num) {
+	
+	color_palette &gb_c = *(color_palette*)bg_palette_mem[(palette * 4 + num) * 2];
+	SDL_Color c = { gb_c.red*8, gb_c.green*8, gb_c.blue*8, 255};
+	return c;
+}
+
+SDL_Color Memory::getSpriteColor(int palette, int num) {
+	color_palette& gb_c = *(color_palette*)sprite_palette_mem[(palette * 4 + num) * 2];
+	SDL_Color c = { gb_c.red*8, gb_c.green*8, gb_c.blue*8, 255 };
+	return c;
 }
 
 //translate the gameboy address into a real memory address and write a byte
