@@ -21,7 +21,9 @@ public:
 	uint8_t* getOam();
 	void saveCartridgeState();
 private:
-	uint8_t boot_rom[0x100];		//256 bytes
+	bool load_bootrom();
+
+	uint8_t *boot_rom;		//256 bytes for dmg, 2304 for gbc
 	uint8_t gb_mem[0x10000];	//memory mapped by 16 bit register (65536 bytes)
 	uint8_t bg_palette_mem[64];	//8 background palettes with 4 colors per palette
 	uint8_t sprite_palette_mem[64];	//8 sprites palettes with 4 colors per palette

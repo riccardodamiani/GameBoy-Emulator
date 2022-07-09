@@ -13,6 +13,9 @@ Memory::Memory() {
 }
 
 void Memory::Init(const char* rom_filename) {
+
+	this->cart = new Cartridge(rom_filename);
+
 	vram = (uint8_t**)(calloc(2, sizeof(uint8_t*)));
 	vram[0] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
 	vram[1] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
@@ -22,28 +25,42 @@ void Memory::Init(const char* rom_filename) {
 	oam = this->gb_mem + 0xfe00;
 
 	videoMode = 0;
-
-	std::ifstream bootrom_file("bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
-
-	if (!bootrom_file.is_open())
-		fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
-
-	std::streampos size = bootrom_file.tellg();
-	if (size != 256)
-		fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
-
-	bootrom_file.seekg(0, std::ios::beg);
-	bootrom_file.read((char*)this->boot_rom, 256);
-	bootrom_file.close();
-
+	load_bootrom();
 	
 	memset(this->gb_mem, 0, sizeof(this->gb_mem));
 	io_map->JOYP = 0xff;
 	hdma_attr = (hdma_struct*)&io_map->HR[0];		//gbc only
 	palette_access = (palette_access_struct*)&io_map->HR[23];		//gbc only
 
-	this->cart = new Cartridge(rom_filename);
+}
 
+bool Memory::load_bootrom() {
+	int correctSize;
+	std::ifstream bootrom_file;
+
+	if (!_GBC_Mode) {
+		correctSize = 256;
+		bootrom_file.open("bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
+	}
+	else {
+		correctSize = 2304;
+		bootrom_file.open("gbc_bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
+	}
+
+	if (!bootrom_file.is_open())
+		fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
+
+	std::streampos size = bootrom_file.tellg();
+	if (size != correctSize)
+		fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
+
+	boot_rom = (uint8_t* )malloc(correctSize);
+
+	bootrom_file.seekg(0, std::ios::beg);
+	bootrom_file.read((char*)this->boot_rom, correctSize);
+	bootrom_file.close();
+
+	return true;
 }
 
 void Memory::saveCartridgeState() {
