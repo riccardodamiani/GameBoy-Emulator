@@ -55,6 +55,15 @@ struct sprite_attribute {
 		priority : 1;	//render priority
 };
 
+struct background_attribute {		//attribute sprite for background (GBC mode only)
+	uint8_t bg_palette : 3,		//background palette number
+		vram_bank : 1,	//vram bank number
+		not_used : 1,
+		h_flip : 1,		//(0=Normal, 1=Mirror horizontally)
+		v_flip : 1,		//(0=Normal, 1=Mirror vertically)
+		bg_oam_priority : 1;	//(0=Use OAM priority bit, 1=BG Priority)
+};
+
 
 struct sound_pulse_data {
 	Mix_Chunk chunk;		//sound data
@@ -267,11 +276,42 @@ struct IO_map {
 	uint8_t OBP1;	// OBJ palette 1
 	uint8_t WY;		//Window Y coord
 	uint8_t WX;		//Window X coord
-	uint8_t NOT_MAPPED_5[4];
+	uint8_t NOT_MAPPED_5[3];
+	uint8_t VBK;	//vram bank number. Only bit 0 in used
 	uint8_t BRC;	//Boot ROM control
 	uint8_t HR[0XAE];	//high ram
 	uint8_t IE;		//Interrupts enabled
 };
+
+struct hdma_struct {
+	uint8_t HDMA1;	//CGB Mode Only - New DMA Source, High
+	uint8_t HDMA2;	//CGB Mode Only - New DMA Source, low
+	uint8_t HDMA3;		//CGB Mode Only - New DMA Destination, High
+	uint8_t HDMA4;		//CGB Mode Only - New DMA Destination, Low
+	//CGB Mode Only - New DMA Length/Mode/Start
+	uint8_t transf_length : 7,		//length to be trasfered. In bytes: (transf_length + 1)*10
+		transfer_mode : 1;		//0 - General Purpose DMA, 1 - H-Blank DMA
+};
+
+
+struct color_palette {
+	uint16_t red : 5,
+		green : 5,
+		blue : 5,
+		not_used : 1;
+};
+
+struct palette_access_struct {
+	uint8_t bg_palette_index : 6,
+		not_used_1 : 1,
+		bg_inc : 1;
+	uint8_t bg_palette_data;
+	uint8_t sprite_palette_index : 6,
+		not_used_2 : 1,
+		sprite_inc : 1;
+	uint8_t sprite_palette_data;
+};
+
 
 
 #endif
