@@ -37,15 +37,14 @@ void Memory::Init(const char* rom_filename) {
 }
 
 bool Memory::load_bootrom() {
-	int correctSize;
 	std::ifstream bootrom_file;
 
 	if (!_GBC_Mode) {
-		correctSize = 256;
+		bootrom_size = 256;
 		bootrom_file.open("bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
 	}
 	else {
-		correctSize = 2304;
+		bootrom_size = 2304;
 		bootrom_file.open("gbc_bootrom.bin", std::ios::in | std::ios::binary | std::ios::ate);
 	}
 
@@ -53,13 +52,13 @@ bool Memory::load_bootrom() {
 		fatal(FATAL_BOOT_ROM_NOT_FOUND, __func__);
 
 	std::streampos size = bootrom_file.tellg();
-	if (size != correctSize)
+	if (size != bootrom_size)
 		fatal(FATAL_INVALID_BOOT_ROM_SIZE, __func__);
 
-	boot_rom = (uint8_t* )malloc(correctSize);
+	boot_rom = (uint8_t* )malloc(bootrom_size);
 
 	bootrom_file.seekg(0, std::ios::beg);
-	bootrom_file.read((char*)this->boot_rom, correctSize);
+	bootrom_file.read((char*)this->boot_rom, bootrom_size);
 	bootrom_file.close();
 
 	return true;
@@ -74,6 +73,14 @@ void Memory::saveCartridgeState() {
 uint8_t* Memory::getVram(void) {
 	if (_GBC_Mode) return this->vram[io_map->VBK & 0x1];
 	return this->vram[0];
+}
+
+uint8_t* Memory::getVramBank0() {
+	return this->vram[0];
+}
+
+uint8_t* Memory::getVramBank1() {
+	return this->vram[1];
 }
 
 IO_map* Memory::getIOMap(void) {
@@ -102,7 +109,7 @@ uint8_t Memory::read(uint16_t gb_address) {
 		return 0xff;
 	}*/
 
-	if (this->io_map->BRC == 0 && gb_address < 0x100) {	//bootstrap rom
+	if (this->io_map->BRC == 0 && gb_address < bootrom_size) {	//bootstrap rom
 		return this->boot_rom[gb_address];
 	}
 
@@ -132,14 +139,14 @@ uint8_t Memory::read(uint16_t gb_address) {
 
 SDL_Color Memory::getBackgroundColor(int palette, int num) {
 	
-	color_palette &gb_c = *(color_palette*)bg_palette_mem[(palette * 4 + num) * 2];
-	SDL_Color c = { gb_c.red*8, gb_c.green*8, gb_c.blue*8, 255};
+	color_palette *gb_c = (color_palette*)&bg_palette_mem[(palette * 4 + num) * 2];
+	SDL_Color c = { gb_c->red*8, gb_c->green*8, gb_c->blue*8, 255};
 	return c;
 }
 
 SDL_Color Memory::getSpriteColor(int palette, int num) {
-	color_palette& gb_c = *(color_palette*)sprite_palette_mem[(palette * 4 + num) * 2];
-	SDL_Color c = { gb_c.red*8, gb_c.green*8, gb_c.blue*8, 255 };
+	color_palette* gb_c = (color_palette*)&sprite_palette_mem[(palette * 4 + num) * 2];
+	SDL_Color c = { gb_c->red * 8, gb_c->green * 8, gb_c->blue * 8, 255 };
 	return c;
 }
 

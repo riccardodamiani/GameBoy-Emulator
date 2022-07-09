@@ -17,6 +17,8 @@ public:
 	void oam_dma_copy(void);
 	uint8_t* translateAddr(uint16_t addr);
 	uint8_t* getVram();
+	uint8_t* getVramBank0();
+	uint8_t* getVramBank1();
 	IO_map* getIOMap();
 	uint8_t* getOam();
 	void saveCartridgeState();
@@ -26,6 +28,7 @@ private:
 	bool load_bootrom();
 
 	uint8_t *boot_rom;		//256 bytes for dmg, 2304 for gbc
+	int bootrom_size;
 	uint8_t gb_mem[0x10000];	//memory mapped by 16 bit register (65536 bytes)
 	uint8_t bg_palette_mem[64];	//8 background palettes with 4 colors per palette
 	uint8_t sprite_palette_mem[64];	//8 sprites palettes with 4 colors per palette
