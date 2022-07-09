@@ -15,4 +15,6 @@ extern Ppu* const _ppu;
 extern Memory* const _memory;
 extern Sound* const _sound;
 
+extern bool _GBC_Mode;
+
 #endif
