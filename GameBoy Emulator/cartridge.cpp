@@ -243,12 +243,13 @@ void Cartridge::verifyHeader(int fileSize) {
 #ifdef _DEBUG
 		std::cout << "CGB flag: CGB and DMG compatible" << std::endl;
 #endif
+		_GBC_Mode = true;
 	}
 	else if (header->cgbFlag == 0xc0) {
 #ifdef _DEBUG
 		std::cout << "CGB flag: only CGB compatible" << std::endl;
 #endif
-		fatal(FATAL_ROM_NOT_DMG_COMPATIBLE, __func__, "CGB header flag: " + std::to_string(header->cgbFlag));
+		_GBC_Mode = true;
 	}
 	else {
 #ifdef _DEBUG
