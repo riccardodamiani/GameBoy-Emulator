@@ -307,6 +307,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 	if (!(io->LCDC & 0x2))		//sprites are disabled
 		return;
 
+	int vram_bank = _GBC_Mode && sprite->vram_bank;
 	int spriteSize = 8;
 	uint8_t tileMask = 0xff;
 	if ((io->LCDC & 0x4)) {
@@ -319,7 +320,7 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 	row = sprite->y_flip ? (spriteSize-1-row) : row;
 
 	int col = sprite->x_pos - 8;
-	uint8_t* spriteMem = &vram[0][(sprite->tile & tileMask) * 16];
+	uint8_t* spriteMem = &vram[vram_bank][(sprite->tile & tileMask) * 16];
 	SDL_Color pixel;
 	uint8_t color;
 	uint8_t palette = (sprite->palette ? io->OBP1 : io->OBP0);
@@ -332,6 +333,13 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 			(((spriteMem[row * 2 + 1] >> (7 - pixelCol)) << 1) & 0x2);
 		if (color_nr == 0)		//transparent
 			continue;
+
+		if (_GBC_Mode) {
+			SDL_Color pixel = _memory->getBackgroundColor(sprite->gbc_palette, color_nr);
+			//draw the pixel
+			memcpy(&scanlineBuffer[col + i], &pixel, 4);
+			continue;
+		}
 		color = (palette >> (color_nr * 2)) & 0x3;
 		pixel = dmg_palette[color];
 		memcpy(&scanlineBuffer[col + i], &pixel, 4);
