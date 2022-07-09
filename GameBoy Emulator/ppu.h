@@ -26,12 +26,6 @@ namespace {
 			{0, 0, 0, 255}
 		}
 	};
-	/*SDL_Color gb_original_palette[4] = {
-		
-	};
-	SDL_Color gb_greyscale_palette[4] = {
-		
-	};*/
 };
 
 class Ppu {
@@ -57,6 +51,7 @@ private:
 	uint8_t* vram;
 	std::mutex bufferMutex;
 	SDL_Color* dmg_palette;
+
 	int paletteNr;
 	bool updatePalette;
 };
