@@ -277,7 +277,9 @@ struct IO_map {
 	uint8_t OBP1;	// OBJ palette 1
 	uint8_t WY;		//Window Y coord
 	uint8_t WX;		//Window X coord
-	uint8_t NOT_MAPPED_5[3];
+	uint8_t NOT_MAPPED_5;
+	uint8_t KEY1;	//prepare speed switch
+	uint8_t NOT_MAPPED_6;
 	uint8_t VBK;	//vram bank number. Only bit 0 in used
 	uint8_t BRC;	//Boot ROM control
 	uint8_t HR[0XAE];	//high ram
