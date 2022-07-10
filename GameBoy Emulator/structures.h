@@ -298,7 +298,13 @@ struct IO_map {
 	uint8_t NOT_MAPPED_6;
 	uint8_t VBK;	//vram bank number. Only bit 0 in used
 	uint8_t BRC;	//Boot ROM control
-	uint8_t HR[0XAE];	//high ram
+	hdma_struct HDMA;	//LCD VRAM DMA Transfers
+	uint8_t RP;		//CGB Mode Only - Infrared Communications Port
+	uint8_t HR1[0X11];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
+	palette_access_struct PLT;	//palette access registers
+	uint8_t HR2[0X4];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
+	uint8_t SVBK; //CGB Mode Only - WRAM Bank
+	uint8_t HR3[0X8f];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
 	uint8_t IE;		//Interrupts enabled
 };
 
