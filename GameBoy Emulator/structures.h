@@ -65,6 +65,11 @@ struct background_attribute {		//attribute sprite for background (GBC mode only)
 		bg_oam_priority : 1;	//(0=Use OAM priority bit, 1=BG Priority)
 };
 
+struct background_tile {
+	uint8_t tile_mem[16];
+	background_attribute tile_attr;
+};
+
 
 struct sound_pulse_data {
 	Mix_Chunk chunk;		//sound data
@@ -198,12 +203,23 @@ struct registers {
 	uint64_t clock_cnt;
 };
 
+struct priority_pixel {
+	uint32_t color;
+	uint8_t priority : 1,
+		trasparent : 1,
+		not_used : 6;
+};
+
 struct ppu_registers {
 	uint8_t stat_signal;
 	uint16_t sl_cnt;
 	uint8_t spritesLoaded;
 	uint8_t bufferDrawn;
 	sprite_attribute* scanlineSprites[10];
+	background_tile backgroundTiles[21];
+	uint8_t firstBgTilePixelX, firstBgTilePixelY;
+	priority_pixel windowScanline[160];
+	uint8_t windowScanlineActive;
 	uint8_t enabled;
 };
 
@@ -303,6 +319,8 @@ struct color_palette {
 		blue : 5,
 		not_used : 1;
 };
+
+
 
 struct palette_access_struct {
 	uint8_t bg_palette_index : 6,
