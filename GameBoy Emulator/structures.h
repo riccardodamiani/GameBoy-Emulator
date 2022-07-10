@@ -245,6 +245,36 @@ struct joypad_map {
 	
 };
 
+
+struct hdma_struct {
+	uint8_t HDMA1;	//CGB Mode Only - New DMA Source, High
+	uint8_t HDMA2;	//CGB Mode Only - New DMA Source, low
+	uint8_t HDMA3;		//CGB Mode Only - New DMA Destination, High
+	uint8_t HDMA4;		//CGB Mode Only - New DMA Destination, Low
+	//CGB Mode Only - New DMA Length/Mode/Start
+	uint8_t transf_length : 7,		//length to be trasfered. In bytes: (transf_length + 1)*10
+		transfer_mode : 1;		//0 - General Purpose DMA, 1 - H-Blank DMA
+};
+
+struct color_palette {
+	uint16_t red : 5,
+		green : 5,
+		blue : 5,
+		not_used : 1;
+};
+
+struct palette_access_struct {
+	uint8_t bg_palette_index : 6,
+		not_used_1 : 1,
+		bg_inc : 1;
+	uint8_t bg_palette_data;
+	uint8_t sprite_palette_index : 6,
+		not_used_2 : 1,
+		sprite_inc : 1;
+	uint8_t sprite_palette_data;
+};
+
+
 struct IO_map {
 	uint8_t JOYP;	//joypad
 	uint8_t SB;		//serial byte
@@ -304,39 +334,8 @@ struct IO_map {
 	palette_access_struct PLT;	//palette access registers
 	uint8_t HR2[0X4];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
 	uint8_t SVBK; //CGB Mode Only - WRAM Bank
-	uint8_t HR3[0X8f];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
+	uint8_t HR3[0X8e];	//high ram block. 0xff51-0xfffe, overlaps with other registers in gbc mode
 	uint8_t IE;		//Interrupts enabled
-};
-
-struct hdma_struct {
-	uint8_t HDMA1;	//CGB Mode Only - New DMA Source, High
-	uint8_t HDMA2;	//CGB Mode Only - New DMA Source, low
-	uint8_t HDMA3;		//CGB Mode Only - New DMA Destination, High
-	uint8_t HDMA4;		//CGB Mode Only - New DMA Destination, Low
-	//CGB Mode Only - New DMA Length/Mode/Start
-	uint8_t transf_length : 7,		//length to be trasfered. In bytes: (transf_length + 1)*10
-		transfer_mode : 1;		//0 - General Purpose DMA, 1 - H-Blank DMA
-};
-
-
-struct color_palette {
-	uint16_t red : 5,
-		green : 5,
-		blue : 5,
-		not_used : 1;
-};
-
-
-
-struct palette_access_struct {
-	uint8_t bg_palette_index : 6,
-		not_used_1 : 1,
-		bg_inc : 1;
-	uint8_t bg_palette_data;
-	uint8_t sprite_palette_index : 6,
-		not_used_2 : 1,
-		sprite_inc : 1;
-	uint8_t sprite_palette_data;
 };
 
 
