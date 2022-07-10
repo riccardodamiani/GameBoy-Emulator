@@ -15,7 +15,6 @@ public:
 	uint8_t read(uint16_t gb_address);
 	void write(uint16_t gb_address, uint8_t value);
 	void oam_dma_copy(void);
-	//uint8_t* translateAddr(uint16_t addr);
 	uint8_t* getVram();
 	uint8_t* getVramBank0();
 	uint8_t* getVramBank1();

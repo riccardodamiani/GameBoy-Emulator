@@ -111,26 +111,6 @@ uint8_t* Memory::getOam() {
 	return this->oam;
 }
 
-/*
-uint8_t* Memory::translateAddr(uint16_t addr) {
-	if (!_GBC_Mode) {
-		if (this->io_map->BRC == 0 && addr < 0x100) {		//intercept accesses to 0x0000 - 0x00ff (boot rom)
-			return (uint8_t*)(addr + this->boot_rom0);
-		}
-	}
-	else {
-		if (this->io_map->BRC == 0 && addr < 0x100) {		//first section of bootrom
-			return (uint8_t*)(addr + this->boot_rom0);
-		}
-		if (this->io_map->BRC == 0 && addr >= 0x200 && addr <= 0x8ff) {		//second section of bootrom
-			return (uint8_t*)(addr + this->boot_rom0);
-		}
-	}
-	
-
-	return (uint8_t*)(addr + this->gb_mem);
-}
-*/
 
 //translate the gameboy address into a real memory address and read a byte
 uint8_t Memory::read(uint16_t gb_address) {
