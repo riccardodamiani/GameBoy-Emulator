@@ -342,23 +342,6 @@ void Ppu::drawBuffer(IO_map* io) {
 			scanlineBuffer[i] = registers.windowScanline[i].color;
 		}
 	}
-	//sprites behind background
-	/*for (int i = 0; i < 10; i++) {
-		if (registers.scanlineSprites[i] == nullptr)
-			continue;
-		if (registers.scanlineSprites[i]->priority) {
-			drawSprite(registers.scanlineSprites[i], io, scanlineBuffer);
-		}
-	}
-	drawBackground(io, scanlineBuffer);
-	//sprites above background
-	for (int i = 0; i < 10; i++) {
-		if (registers.scanlineSprites[i] == nullptr)
-			continue;
-		if (!registers.scanlineSprites[i]->priority) {
-			drawSprite(registers.scanlineSprites[i], io, scanlineBuffer);
-		}
-	}*/
 }
 
 void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
@@ -418,121 +401,7 @@ void Ppu::flipTile(background_tile& tile) {
 		}
 	}
 }
-/*
-void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
-	if (!(io->LCDC & 0x1)) {		//background/window disabled
-		return;
-	}
 
-	uint8_t flippedTileMem[16];
-
-	background_attribute bg_att = {};
-
-	//memory section for background tile map
-	uint32_t tileMapAddr = ((io->LCDC & 0x8) ? 0x1c00 : 0x1800);		
-	uint8_t pixelRow = (io->LY + io->SCY) % 8;
-	uint8_t mapRow = (io->LY + io->SCY) / 8;
-	if (mapRow > 31) mapRow %= 32;		//wrap the y around
-	for (uint8_t screenX = 0; screenX < 160; screenX++) {
-		uint8_t tileMapX = screenX + io->SCX;
-		short tileNum;
-		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
-			tileNum = vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8];
-		}
-		else {
-			tileNum = (char)vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8] + 256;
-		}
-		//get the background tile attribute (only in gbc mode)
-		if (_GBC_Mode) memcpy((void*)&bg_att, &vram[1][tileMapAddr + mapRow * 32 + tileMapX / 8], 1);
-
-		//get the pointer to the tile memory
-		uint8_t* tileMem = &vram[bg_att.vram_bank][tileNum * 16];
-		if (_GBC_Mode) {
-			memcpy(flippedTileMem, tileMem, 16);
-			if (bg_att.h_flip) {
-				for (int i = 0; i < 16; i += 2) {
-					uint8_t t = flippedTileMem[i];
-					flippedTileMem[i] = flippedTileMem[i + 1];
-					flippedTileMem[i + 1] = t;
-				}
-			}
-			if (bg_att.v_flip) {
-				for (int i = 0; i < 8; i++) {
-					uint8_t t = flippedTileMem[i];
-					flippedTileMem[i] = flippedTileMem[i + 8];
-					flippedTileMem[i + 8] = t;
-				}
-			}
-			tileMem = flippedTileMem;
-		}
-
-		//find out the color
-		int col = tileMapX % 8;
-		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
-			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
-		if (color_nr == 0)		//transparent
-			continue;
-
-		if (_GBC_Mode) {
-			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
-
-			//draw the pixel
-			memcpy(&scanlineBuffer[screenX], &pixel, 4);
-			continue;
-		}
-		
-		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
-		SDL_Color pixel = dmg_palette[color];
-
-		//draw the pixel
-		memcpy(&scanlineBuffer[screenX], &pixel, 4);
-	}
-
-	if (!(io->LCDC & 0x20))		//window disabled
-		return;
-	if (io->LY < io->WY || io->WX > 166)		//not shown
-		return;
-
-	//memory section for window tile map
-	tileMapAddr = ((io->LCDC & 0x40) ? 0x1c00 : 0x1800);
-	
-	pixelRow = (io->LY - io->WY) % 8;
-	mapRow = (io->LY - io->WY) / 8;
-	for (uint8_t screenX = std::max(io->WX - 7, 0); screenX < 160; screenX++) {
-		uint8_t tileMapX = screenX - io->WX + 7;
-		short tileNum;
-		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
-			tileNum = vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8];
-		}
-		else {
-			tileNum = (char)vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8] + 256;
-		}
-		//get the background tile attribute (only in gbc mode)
-		if (_GBC_Mode) memcpy((void*)&bg_att, &vram[1][tileMapAddr + mapRow * 32 + tileMapX / 8], 1);
-
-		//get the pointer to the tile memory
-		uint8_t* tileMem = &vram[bg_att.vram_bank][tileNum * 16];
-
-		//find out the color
-		int col = tileMapX % 8;
-		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
-			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
-
-		if (_GBC_Mode) {
-			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
-
-			//draw the pixel
-			memcpy(&scanlineBuffer[screenX], &pixel, 4);
-			continue;
-		}
-
-		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
-		SDL_Color pixel = dmg_palette[color];
-
-		//draw the pixel
-		memcpy(&scanlineBuffer[screenX], &pixel, 4);
-	}
-}*/
 
 void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, priority_pixel* scanlineBuffer) {
 
