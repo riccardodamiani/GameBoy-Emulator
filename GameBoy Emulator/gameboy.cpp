@@ -26,6 +26,7 @@ bool GameBoy::Init() {
 	clockSpeed = 1;
 	registers.clock_cnt = 0;
 	time_clock = 0;
+	doubleSpeed = 0;	//normal speed
 
 	//init mem
 	memset(&this->registers, 0, sizeof(this->registers));
@@ -60,31 +61,43 @@ void GameBoy::runFor(int cycles) {
 int GameBoy::nextInstruction() {
 
 	unsigned int m_cycles = 0;
-	IO_map* io_map = _memory->getIOMap();
+	IO_map* io = _memory->getIOMap();
 
 	m_cycles = handleInterrupt();
+	int cycles;
 
 	if (!registers.halted && !registers.stopped) {
 		m_cycles += this->execute();
+		cycles = (m_cycles * 4) >> doubleSpeed;
 
 		//update divider register at a rate of 16384Hz 
-		registers.div_cnt += m_cycles * 4;
+		registers.div_cnt += cycles;
 		if (registers.div_cnt >= 256) {
 			registers.div_cnt -= 256;
-			io_map->DIV++;
+			io->DIV++;
 		}
 	}
-	else m_cycles += 1;		//lcd and the timer still need the clock to work in halt mode
+	else {
+		m_cycles += 1;		//lcd and the timer still need the clock to work in halt mode
+		cycles = (m_cycles * 4) >> doubleSpeed;
+
+		//double speed
+		if (_GBC_Mode && (io->KEY1 & 0x1)) {
+			io->KEY1 = 0;
+			this->registers.stopped = 0;
+			doubleSpeed = !doubleSpeed;
+		}
+	}
 
 	handleJoypad();
 	if (!registers.stopped) {
 		handleSerial();
-		handleTimer(m_cycles);
-		_ppu->drawScanline(m_cycles*4);
+		handleTimer(m_cycles * 4);
+		_ppu->drawScanline(cycles);
 	}
 
 	registers.clock_cnt += m_cycles * 4;
-	return m_cycles * 4;
+	return cycles;
 }
 
 
@@ -94,7 +107,7 @@ void GameBoy::handleTimer(int cycles) {
 	if (!(io_map->TAC & 0x4))
 		return;
 
-	this->registers.timer_clk += cycles * 4;
+	this->registers.timer_clk += cycles;
 	int div_flag = (io_map->TAC & 0x3);
 	int divider = (div_flag == 0) ? 1024 : (4 << (div_flag*2));
 	if (this->registers.timer_clk >= divider) {
@@ -195,7 +208,9 @@ int GameBoy::execute() {
 	uint16_t pc = this->registers.pc;
 
 	uint8_t opcode = _memory->read(pc);
-
+	if (pc == 0xd8) {
+		pc = pc;
+	}
 	switch (opcode) {
 	case 0x0:		//NOP
 	{

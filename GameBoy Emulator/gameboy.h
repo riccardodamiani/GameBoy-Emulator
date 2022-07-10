@@ -29,6 +29,7 @@ private:
 	//Sound* sound;
 	joypad joypadStatus;
 	float clockSpeed;
+	int doubleSpeed;
 
 	uint32_t time_clock;
 	std::chrono::steady_clock::time_point realTimePoint;
