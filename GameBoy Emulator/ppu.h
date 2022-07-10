@@ -38,12 +38,19 @@ public:
 private:
 	void sort(sprite_attribute** buffer, int len);
 	void drawBuffer(IO_map* io);
-	void drawSprite(sprite_attribute *sprite, IO_map* io, uint32_t* scanlineBuffer);
-	void drawBackground(IO_map* io, uint32_t* scanlineBuffer);
+	void drawSprite(sprite_attribute *sprite, IO_map* io, priority_pixel* scanlineBuffer);
+	//void drawBackground(IO_map* io, uint32_t* scanlineBuffer);
 	void clearScanline(IO_map* io);
 	void clearScreen();
 	void disable();
 	void enable();
+	void findScanlineBgTiles(IO_map* io);
+	void createWindowScanline(IO_map* io);
+	void findScanlineSprites(sprite_attribute* oam, IO_map* io);
+	void flipTile(background_tile& tile);
+	void createBackgroundScanline(priority_pixel* scanline, IO_map* io);
+	void createSpriteScanline(priority_pixel* scanline, IO_map* io);
+
 	ppu_registers registers;
 	uint32_t screenBuffers[2][23040];		//screen buffers with pixel format rgba
 	uint32_t* tempBuffer;	//used to provide a copy of the buffer to render to the renderer

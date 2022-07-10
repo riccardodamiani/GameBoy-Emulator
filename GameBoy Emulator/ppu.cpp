@@ -52,8 +52,16 @@ void Ppu::clearScanline(IO_map* io) {
 
 void Ppu::clearScreen() {
 	bufferMutex.lock();
-	for (int i = 0; i < 160*144*2; i++) {
+	if (_GBC_Mode) {
+		memset(&screenBuffers[0], 0xffffffff, 160 * 144);
+		memset(&screenBuffers[1], 0xffffffff, 160 * 144);
+		bufferMutex.unlock();
+		return;
+	}
+
+	for (int i = 0; i < 160*144; i++) {
 		memcpy(&screenBuffers[0][i], &dmg_palette[0], 4);
+		memcpy(&screenBuffers[1][i], &dmg_palette[0], 4);
 	}
 	bufferMutex.unlock();
 }
@@ -115,22 +123,7 @@ void Ppu::drawScanline(int clk_cycles){
 		else if (registers.sl_cnt <= 284) {
 			stat->lcd_mode = 2;
 			if (!registers.spritesLoaded) {		//search sprites in oam
-				sprite_attribute* sprites[40];
-				memset(registers.scanlineSprites, 0, sizeof(registers.scanlineSprites));
-				for (int i = 0; i < 40; i++) sprites[i] = &((sprite_attribute*)oam)[i];
-				if(!_GBC_Mode) sort(sprites, 40);
-				int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
-				int j = 0;
-				for (int i = 39; i >= 0; i--) {
-					int yPos = sprites[i]->y_pos - 16;
-					if (io->LY >= yPos &&
-						(io->LY < yPos + spriteSize)) {
-						registers.scanlineSprites[j++] = sprites[i];
-						if (j >= 10)	//max 10 sprites per scanline
-							break;
-					}
-				}
-				registers.spritesLoaded = 1;
+				findScanlineSprites((sprite_attribute*)oam, io);
 			}
 		}
 		else {
@@ -172,6 +165,138 @@ void Ppu::drawScanline(int clk_cycles){
 
 }
 
+void Ppu::createWindowScanline(IO_map* io) {
+	if (!(io->LCDC & 0x20)) {		//window disabled
+		registers.windowScanlineActive = 0;
+		return;
+	}
+	if (io->LY < io->WY || io->WX > 166) {		//not shown
+		registers.windowScanlineActive = 0;
+		return;
+	}
+
+	background_attribute bg_att = {};
+
+	//memory section for window tile map
+	uint32_t tileMapAddr = ((io->LCDC & 0x40) ? 0x1c00 : 0x1800);
+
+	uint8_t pixelRow = (io->LY - io->WY) % 8;
+	uint8_t mapRow = (io->LY - io->WY) / 8;
+	for (uint8_t screenX = std::max(io->WX - 7, 0); screenX < 160; screenX++) {
+		uint8_t tileMapX = screenX - io->WX + 7;
+		short tileNum;
+		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
+			tileNum = vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8];
+		}
+		else {
+			tileNum = (char)vram[0][tileMapAddr + mapRow * 32 + tileMapX / 8] + 256;
+		}
+		//get the background tile attribute (only in gbc mode)
+		if (_GBC_Mode) memcpy((void*)&bg_att, &vram[1][tileMapAddr + mapRow * 32 + tileMapX / 8], 1);
+
+		//get the pointer to the tile memory
+		uint8_t* tileMem = &vram[bg_att.vram_bank][tileNum * 16];
+
+		//find out the color
+		int col = tileMapX % 8;
+		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
+			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
+
+		if (_GBC_Mode) {
+			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
+
+			//draw the pixel
+			memcpy(&registers.windowScanline[screenX], &pixel, 4);
+			continue;
+		}
+
+		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
+		SDL_Color pixel = dmg_palette[color];
+
+		//draw the pixel
+		memcpy(&registers.windowScanline[screenX], &pixel, 4);
+	}
+	registers.windowScanlineActive = 1;
+
+}
+
+void Ppu::createSpriteScanline(priority_pixel* scanline, IO_map* io) {
+
+	//initialize the scanline as transparent
+	for (int i = 0; i < 160; i++) {
+		scanline[i].trasparent = 1;
+	}
+
+	//go throught all sprites from lower priority
+	for (int i = 9; i >= 0; i--) {
+		if (registers.scanlineSprites[i] == nullptr)
+			continue;
+		drawSprite(registers.scanlineSprites[i], io, scanline);
+	}
+}
+
+void Ppu::findScanlineBgTiles(IO_map* io) {
+	
+	short y = (io->SCY + io->LY) % 256;
+
+	uint8_t firstTileGridX = io->SCX / 8;
+	uint8_t firstTileGridY = y / 8;
+	uint8_t firstTilePixelX = io->SCX % 8;
+	uint8_t firstTilePixelY = y % 8;
+
+	short tileNum;
+	uint8_t tileGridX;
+	uint32_t tileMapAddr = ((io->LCDC & 0x8) ? 0x1c00 : 0x1800);
+	
+	for (int i = 0; i < 21; i++) {
+		//get the x position of the next tile in the 32x32 tiles grid
+		tileGridX = (firstTileGridX + i) % 32;
+
+		//get the tile number
+		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
+			tileNum = vram[0][tileMapAddr + firstTileGridY * 32 + tileGridX];
+		}
+		else {
+			tileNum = (char)vram[0][tileMapAddr + firstTileGridY * 32 + tileGridX] + 256;
+		}
+
+		//get tile attributes
+		background_attribute tile_attr = {};
+		if (_GBC_Mode) memcpy((void*)&tile_attr, &vram[1][tileMapAddr + firstTileGridY * 32 + tileGridX], 1);
+
+		//get the pointer to the tile memory
+		uint8_t* tileMem = &vram[tile_attr.vram_bank][tileNum * 16];
+
+		//copy the tile memory and the attributes to the registers
+		registers.backgroundTiles[i].tile_attr = tile_attr;
+		memcpy(registers.backgroundTiles[i].tile_mem, tileMem, 16);
+	}
+
+	//set the position of the first tile on screen
+	registers.firstBgTilePixelX = firstTilePixelX;
+	registers.firstBgTilePixelY = firstTilePixelY;
+}
+
+void Ppu::findScanlineSprites(sprite_attribute* oam, IO_map* io) {
+
+	sprite_attribute* sprites[40];
+	memset(registers.scanlineSprites, 0, sizeof(registers.scanlineSprites));
+	for (int i = 0; i < 40; i++) sprites[i] = &oam[i];
+	if (!_GBC_Mode) sort(sprites, 40);
+	int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
+	int j = 0;
+	for (int i = 39; i >= 0; i--) {
+		int yPos = sprites[i]->y_pos - 16;
+		if (io->LY >= yPos &&
+			(io->LY < yPos + spriteSize)) {
+			registers.scanlineSprites[j++] = sprites[i];
+			if (j >= 10)	//max 10 sprites per scanline
+				break;
+		}
+	}
+	registers.spritesLoaded = 1;
+}
+
 void Ppu::drawBuffer(IO_map* io) {
 	uint32_t* buffer = screenBuffers[activeBuffer];
 
@@ -187,9 +312,38 @@ void Ppu::drawBuffer(IO_map* io) {
 			scanlineBuffer[i] = 0xffffffff;
 		}
 	}
+	priority_pixel spriteScanline[160], bgScanline[160];
 
+	createBackgroundScanline(bgScanline, io);
+	createWindowScanline(io);
+	createSpriteScanline(spriteScanline, io);
+
+	for (int i = 0; i < 160; i++) {
+		if ((io->LCDC & 0x1)) {		//background/window disabled
+			scanlineBuffer[i] = bgScanline[i].color;
+		}
+		//background priority
+		if ((bgScanline[i].priority | spriteScanline[i].priority)) {
+			if (!bgScanline[i].trasparent) {
+				scanlineBuffer[i] = bgScanline[i].color;
+				continue;
+			}
+		}
+		
+		//sprite pixel
+		if(!spriteScanline[i].trasparent){
+			scanlineBuffer[i] = spriteScanline[i].color;
+		}
+	}
+	
+	//window pixels
+	if (registers.windowScanlineActive) {
+		for (int i = 0; i < 160; i++) {
+			scanlineBuffer[i] = registers.windowScanline[i].color;
+		}
+	}
 	//sprites behind background
-	for (int i = 0; i < 10; i++) {
+	/*for (int i = 0; i < 10; i++) {
 		if (registers.scanlineSprites[i] == nullptr)
 			continue;
 		if (registers.scanlineSprites[i]->priority) {
@@ -204,13 +358,73 @@ void Ppu::drawBuffer(IO_map* io) {
 		if (!registers.scanlineSprites[i]->priority) {
 			drawSprite(registers.scanlineSprites[i], io, scanlineBuffer);
 		}
-	}
+	}*/
 }
 
+void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
+	if (!(io->LCDC & 0x1)) {		//background/window disabled
+		//set background layer transparent
+		for (int i = 0; i < 160; i++) {
+			scanline[i].trasparent = 1;
+		}
+		return;
+	}
+
+	findScanlineBgTiles(io);
+
+	for (int i = 0; i < 160; i++) {
+		uint8_t bgIndex = (registers.firstBgTilePixelX + i) / 8;
+		background_tile& bgTile = registers.backgroundTiles[bgIndex];
+
+		flipTile(bgTile);
+
+		int row = registers.firstBgTilePixelY;
+		int col = (registers.firstBgTilePixelX + i) % 8;
+		uint8_t color_nr = ((bgTile.tile_mem[row * 2] >> (7 - col)) & 0x1) |
+			(((bgTile.tile_mem[row * 2 + 1] >> (7 - col)) << 1) & 0x2);
+		scanline[i].trasparent = (color_nr == 0);		//transparent
+		scanline[i].priority = bgTile.tile_attr.bg_oam_priority;
+
+		if (_GBC_Mode) {
+			SDL_Color pixel = _memory->getBackgroundColor(bgTile.tile_attr.bg_palette, color_nr);
+
+			//draw the pixel
+			memcpy(&scanline[i], &pixel, 4);
+			continue;
+		}
+
+		uint8_t color = (io->BGP >> (color_nr * 2)) & 0x3;
+		SDL_Color pixel = dmg_palette[color];
+
+		//draw the pixel
+		memcpy(&scanline[i], &pixel, 4);
+	}
+
+}
+
+void Ppu::flipTile(background_tile& tile) {
+	if (tile.tile_attr.h_flip) {
+		for (int i = 0; i < 16; i += 2) {
+			uint8_t t = tile.tile_mem[i];
+			tile.tile_mem[i] = tile.tile_mem[i + 1];
+			tile.tile_mem[i + 1] = t;
+		}
+	}
+	if (tile.tile_attr.v_flip) {
+		for (int i = 0; i < 8; i++) {
+			uint8_t t = tile.tile_mem[i];
+			tile.tile_mem[i] = tile.tile_mem[i + 8];
+			tile.tile_mem[i + 8] = t;
+		}
+	}
+}
+/*
 void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 	if (!(io->LCDC & 0x1)) {		//background/window disabled
 		return;
 	}
+
+	uint8_t flippedTileMem[16];
 
 	background_attribute bg_att = {};
 
@@ -233,6 +447,24 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 
 		//get the pointer to the tile memory
 		uint8_t* tileMem = &vram[bg_att.vram_bank][tileNum * 16];
+		if (_GBC_Mode) {
+			memcpy(flippedTileMem, tileMem, 16);
+			if (bg_att.h_flip) {
+				for (int i = 0; i < 16; i += 2) {
+					uint8_t t = flippedTileMem[i];
+					flippedTileMem[i] = flippedTileMem[i + 1];
+					flippedTileMem[i + 1] = t;
+				}
+			}
+			if (bg_att.v_flip) {
+				for (int i = 0; i < 8; i++) {
+					uint8_t t = flippedTileMem[i];
+					flippedTileMem[i] = flippedTileMem[i + 8];
+					flippedTileMem[i + 8] = t;
+				}
+			}
+			tileMem = flippedTileMem;
+		}
 
 		//find out the color
 		int col = tileMapX % 8;
@@ -300,9 +532,9 @@ void Ppu::drawBackground(IO_map* io, uint32_t* scanlineBuffer) {
 		//draw the pixel
 		memcpy(&scanlineBuffer[screenX], &pixel, 4);
 	}
-}
+}*/
 
-void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuffer) {
+void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, priority_pixel* scanlineBuffer) {
 
 	if (!(io->LCDC & 0x2))		//sprites are disabled
 		return;
@@ -337,12 +569,16 @@ void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, uint32_t* scanlineBuf
 		if (_GBC_Mode) {
 			SDL_Color pixel = _memory->getSpriteColor(sprite->gbc_palette, color_nr);
 			//draw the pixel
-			memcpy(&scanlineBuffer[col + i], &pixel, 4);
+			memcpy(&scanlineBuffer[col + i].color, &pixel, 4);
+			scanlineBuffer[col + i].priority = sprite->priority;
+			scanlineBuffer[col + i].trasparent = 0;
 			continue;
 		}
 		color = (palette >> (color_nr * 2)) & 0x3;
 		pixel = dmg_palette[color];
-		memcpy(&scanlineBuffer[col + i], &pixel, 4);
+		memcpy(&scanlineBuffer[col + i].color, &pixel, 4);
+		scanlineBuffer[col + i].priority = sprite->priority;
+		scanlineBuffer[col + i].trasparent = 0;
 	}
 }
 
