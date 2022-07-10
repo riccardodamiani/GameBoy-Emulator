@@ -31,8 +31,6 @@ void Memory::Init(const char* rom_filename) {
 	
 	memset(this->gb_mem, 0, sizeof(this->gb_mem));
 	io_map->JOYP = 0xff;
-	hdma_attr = (hdma_struct*)&io_map->HR[0];		//gbc only
-	palette_access = (palette_access_struct*)&io_map->HR[23];		//gbc only
 
 }
 
@@ -131,10 +129,10 @@ uint8_t Memory::read(uint16_t gb_address) {
 		}
 
 		if (gb_address == 0xff69) {		//read a byte from the bg palette memory
-			return bg_palette_mem[palette_access->bg_palette_index];
+			return bg_palette_mem[io_map->PLT.bg_palette_index];
 		}
 		if (gb_address == 0xff6b) {		//read a byte from the sprite palette memory
-			return sprite_palette_mem[palette_access->sprite_palette_index];
+			return sprite_palette_mem[io_map->PLT.sprite_palette_index];
 		}
 	}
 
@@ -200,13 +198,13 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	if (_GBC_Mode) {
 		if (gb_address == 0xff69) {		//write a byte to the bg palette memory
-			bg_palette_mem[palette_access->bg_palette_index] = value;
-			palette_access->bg_palette_index += palette_access->bg_inc;
+			bg_palette_mem[io_map->PLT.bg_palette_index] = value;
+			io_map->PLT.bg_palette_index += io_map->PLT.bg_inc;
 			return;
 		}
 		if (gb_address == 0xff6b) {		//write a byte to the sprite palette memory
-			sprite_palette_mem[palette_access->sprite_palette_index] = value;
-			palette_access->sprite_palette_index += palette_access->sprite_inc;
+			sprite_palette_mem[io_map->PLT.sprite_palette_index] = value;
+			io_map->PLT.sprite_palette_index += io_map->PLT.sprite_inc;
 			return;
 		}
 	}

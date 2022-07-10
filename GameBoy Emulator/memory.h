@@ -40,10 +40,8 @@ private:
 	uint8_t* wram;	//work ram (0xc000 - 0xdfff)
 	IO_map* io_map;		// input output memory map (0xff00 - 0xff7f)
 	uint8_t* oam;		//(object attribute table) sprite information table (0xfe00 - 0xfe9f)
-	hdma_struct* hdma_attr;		//gbc only
 	Cartridge* cart;
 	uint8_t videoMode;
-	palette_access_struct* palette_access;
 
 	std::mutex cart_ram_AccessMutex;
 };
