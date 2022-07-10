@@ -31,6 +31,7 @@ private:
 	uint8_t gb_mem[0x10000];	//memory mapped by 16 bit register (65536 bytes)
 	uint8_t bg_palette_mem[64];	//8 background palettes with 4 colors per palette
 	uint8_t sprite_palette_mem[64];	//8 sprites palettes with 4 colors per palette
+	uint8_t *wram_banks[7];		//wram banks, only in CGB mode
 
 	//In gbc mode all 2 banks of 0x2000 bytes of vram are used, 
 	//in dmg mode only the first bank. Mapped at: 0x8000 - 0x9fff

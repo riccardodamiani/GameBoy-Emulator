@@ -22,6 +22,11 @@ void Memory::Init(const char* rom_filename) {
 	vram[0] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
 	vram[1] = (uint8_t*)(calloc(0x2000, sizeof(uint8_t)));
 
+	//wram banks
+	for (int i = 0; i < 7; i++) {
+		wram_banks[i] = (uint8_t*)calloc(0x1000, 1);
+	}
+
 	wram = (uint8_t*)(this->gb_mem + 0xc000);
 	io_map = (IO_map*)(this->gb_mem + 0xff00);
 	oam = this->gb_mem + 0xfe00;
@@ -124,8 +129,13 @@ uint8_t Memory::read(uint16_t gb_address) {
 	}
 
 	if (_GBC_Mode) {
+		//bank 1-7 of wram
+		if (gb_address >= 0xd000 && gb_address <= 0xdfff) {
+			return wram_banks[(io_map->SVBK == 0 ? 1 : io_map->SVBK & 0x7) - 1][gb_address - 0xd000];
+		}
+
 		if (this->io_map->BRC == 0 && gb_address >= 0x200 && gb_address<= 0x8ff) {	//second section bootstrap rom
-			return this->boot_rom1[gb_address-0x200];
+			return this->boot_rom1[gb_address - 0x200];
 		}
 
 		if (gb_address == 0xff69) {		//read a byte from the bg palette memory
@@ -197,6 +207,10 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 	if (gb_address == 0xff04) value = 0;
 
 	if (_GBC_Mode) {
+		if (gb_address >= 0xd000 && gb_address <= 0xdfff) {
+			wram_banks[(io_map->SVBK == 0 ? 1 : io_map->SVBK & 0x7) - 1][gb_address - 0xd000] = value;
+		}
+
 		if (gb_address == 0xff69) {		//write a byte to the bg palette memory
 			bg_palette_mem[io_map->PLT.bg_palette_index] = value;
 			io_map->PLT.bg_palette_index += io_map->PLT.bg_inc;
