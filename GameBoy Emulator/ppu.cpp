@@ -170,12 +170,15 @@ void Ppu::drawScanline(int clk_cycles){
 }
 
 void Ppu::createWindowScanline(IO_map* io) {
-	if (!(io->LCDC & 0x20)) {		//window disabled
-		registers.windowScanlineActive = 0;
+
+	for (int i = 0; i < 160; i++) {
+		registers.windowScanline[i].trasparent = 1;
+	}
+
+	if (!(io->LCDC & 0x20) || (_GBC_Mode && !(io->LCDC & 0x1))) {		//window disabled
 		return;
 	}
 	if (io->LY < io->WY || io->WX > 166) {		//not shown
-		registers.windowScanlineActive = 0;
 		return;
 	}
 
@@ -210,7 +213,8 @@ void Ppu::createWindowScanline(IO_map* io) {
 			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
 
 			//draw the pixel
-			memcpy(&registers.windowScanline[screenX], &pixel, 4);
+			memcpy(&registers.windowScanline[screenX].color, &pixel, 4);
+			registers.windowScanline[screenX].trasparent = 0;
 			continue;
 		}
 
@@ -218,9 +222,9 @@ void Ppu::createWindowScanline(IO_map* io) {
 		SDL_Color pixel = dmg_palette[color];
 
 		//draw the pixel
-		memcpy(&registers.windowScanline[screenX], &pixel, 4);
+		memcpy(&registers.windowScanline[screenX].color, &pixel, 4);
+		registers.windowScanline[screenX].trasparent = 0;
 	}
-	registers.windowScanlineActive = 1;
 
 }
 
@@ -230,6 +234,8 @@ void Ppu::createSpriteScanline(priority_pixel* scanline, IO_map* io) {
 	for (int i = 0; i < 160; i++) {
 		scanline[i].trasparent = 1;
 	}
+	if (!(io->LCDC & 0x2))		//sprites are disabled
+		return;
 
 	//go throught all sprites from lower priority
 	for (int i = 9; i >= 0; i--) {
@@ -324,29 +330,36 @@ void Ppu::drawBuffer(IO_map* io) {
 	createSpriteScanline(spriteScanline, io);
 
 	for (int i = 0; i < 160; i++) {
-		if ((io->LCDC & 0x1)) {		//background/window disabled
+
+		if (spriteScanline[i].trasparent) {
 			scanlineBuffer[i] = bgScanline[i].color;
-		}
-		//background priority
-		if ((bgScanline[i].priority | spriteScanline[i].priority)) {
-			if (!bgScanline[i].trasparent) {
-				scanlineBuffer[i] = bgScanline[i].color;
-				continue;
+			//window pixels
+			if (!registers.windowScanline[i].trasparent) {
+				scanlineBuffer[i] = registers.windowScanline[i].color;
 			}
+			continue;
 		}
-		
-		//sprite pixel
-		if(!spriteScanline[i].trasparent){
-			scanlineBuffer[i] = spriteScanline[i].color;
+
+		//background priority
+		if ((bgScanline[i].priority | spriteScanline[i].priority) && !bgScanline[i].trasparent) {
+			scanlineBuffer[i] = bgScanline[i].color;
+			//window pixels
+			if (!registers.windowScanline[i].trasparent) {
+				scanlineBuffer[i] = registers.windowScanline[i].color;
+			}
+			continue;
 		}
-	}
-	
-	//window pixels
-	if (registers.windowScanlineActive) {
-		for (int i = 0; i < 160; i++) {
+
+		//window pixels
+		if (!registers.windowScanline[i].trasparent) {
 			scanlineBuffer[i] = registers.windowScanline[i].color;
 		}
+
+		//draw sprite
+		scanlineBuffer[i] = spriteScanline[i].color;
+
 	}
+	
 }
 
 void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
@@ -411,9 +424,6 @@ void Ppu::flipTile(background_tile& tile) {
 
 
 void Ppu::drawSprite(sprite_attribute* sprite, IO_map* io, priority_pixel* scanlineBuffer) {
-
-	if (!(io->LCDC & 0x2))		//sprites are disabled
-		return;
 
 	int vram_bank = _GBC_Mode && sprite->vram_bank;
 	int spriteSize = 8;
