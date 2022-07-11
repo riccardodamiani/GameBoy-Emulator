@@ -83,9 +83,9 @@ int GameBoy::nextInstruction() {
 
 		//double speed
 		if (_GBC_Mode && (io->KEY1 & 0x1)) {
-			io->KEY1 = 0;
-			registers.stopped = 0;
 			doubleSpeed = !doubleSpeed;
+			registers.stopped = 0;
+			io->KEY1 = (doubleSpeed << 7);
 		}
 	}
 
