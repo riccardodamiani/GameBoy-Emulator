@@ -28,6 +28,10 @@ namespace {
 	};
 };
 
+static uint8_t reverse_lookup[16] = {
+0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe,
+0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf, };
+
 class Ppu {
 public:
 	Ppu();
@@ -50,6 +54,7 @@ private:
 	void flipTile(background_tile& tile);
 	void createBackgroundScanline(priority_pixel* scanline, IO_map* io);
 	void createSpriteScanline(priority_pixel* scanline, IO_map* io);
+	uint8_t reverse(uint8_t n);
 
 	ppu_registers registers;
 	uint32_t screenBuffers[2][23040];		//screen buffers with pixel format rgba

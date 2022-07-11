@@ -92,11 +92,15 @@ void Ppu::drawScanline(int clk_cycles){
 	enable();
 
 	registers.sl_cnt += clk_cycles;
-	if (registers.sl_cnt > 456) {
+	if (registers.sl_cnt > 456) {	//enter H-Blank
 		registers.sl_cnt -= 456;
 		io->LY++;
 		registers.spritesLoaded = 0;
 		registers.bufferDrawn = 0;
+
+		if(io->LY < 144)	//H-Blank in V-Draw
+			_memory->transfer_hdma();
+
 		if (io->LY == 144) {	//enter VBlank
 			io->IF |= 0x1;
 		}
@@ -270,6 +274,7 @@ void Ppu::findScanlineBgTiles(IO_map* io) {
 		//copy the tile memory and the attributes to the registers
 		registers.backgroundTiles[i].tile_attr = tile_attr;
 		memcpy(registers.backgroundTiles[i].tile_mem, tileMem, 16);
+		flipTile(registers.backgroundTiles[i]);
 	}
 
 	//set the position of the first tile on screen
@@ -359,8 +364,6 @@ void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
 		uint8_t bgIndex = (registers.firstBgTilePixelX + i) / 8;
 		background_tile& bgTile = registers.backgroundTiles[bgIndex];
 
-		flipTile(bgTile);
-
 		int row = registers.firstBgTilePixelY;
 		int col = (registers.firstBgTilePixelX + i) % 8;
 		uint8_t color_nr = ((bgTile.tile_mem[row * 2] >> (7 - col)) & 0x1) |
@@ -385,19 +388,23 @@ void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
 
 }
 
+
+uint8_t Ppu::reverse(uint8_t n) {
+	// Reverse the top and bottom nibble then swap them.
+	return (reverse_lookup[n & 0b1111] << 4) | reverse_lookup[n >> 4];
+}
+
 void Ppu::flipTile(background_tile& tile) {
 	if (tile.tile_attr.h_flip) {
-		for (int i = 0; i < 16; i += 2) {
-			uint8_t t = tile.tile_mem[i];
-			tile.tile_mem[i] = tile.tile_mem[i + 1];
-			tile.tile_mem[i + 1] = t;
+		for (int i = 0; i < 16; i++) {
+			tile.tile_mem[i] = reverse(tile.tile_mem[i]);
 		}
 	}
 	if (tile.tile_attr.v_flip) {
-		for (int i = 0; i < 8; i++) {
-			uint8_t t = tile.tile_mem[i];
-			tile.tile_mem[i] = tile.tile_mem[i + 8];
-			tile.tile_mem[i + 8] = t;
+		for (int i = 0; i < 4; i++) {
+			uint16_t t = ((uint16_t*)tile.tile_mem)[i];
+			((uint16_t*)tile.tile_mem)[i] = ((uint16_t*)tile.tile_mem)[7 - i];
+			((uint16_t*)tile.tile_mem)[7 - i] = t;
 		}
 	}
 }
