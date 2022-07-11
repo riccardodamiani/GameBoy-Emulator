@@ -48,6 +48,8 @@ namespace {
 		"MBC2+BATTERY",		//6
 		"ROM+RAM",		//8
 		"ROM+RAM+BATTERY",		//9
+		"MBC3+TIMER+BATTERY",		//F
+		"MBC3+TIMER+RAM+BATTERY",		//10
 		"MBC3",		//11
 		"MBC3+RAM",		//12
 		"MBC3+RAM+BATTERY",		//13
@@ -57,11 +59,11 @@ namespace {
 	};
 };
 
-struct cartridge_header;
-
 #include <cstdint>
 #include <utility>
 #include <string>
+
+#include "structures.h"
 
 class Cartridge {
 public:
@@ -82,6 +84,7 @@ private:
 	static uint32_t ram_mask;
 	cartridge_header* header;
 	std::string romPath;
+	bool rtc;
 	int ramSize;
 
 	void allocRamFromHeader();
@@ -103,6 +106,7 @@ private:
 	static uint32_t mbc3_rom_translate_func(uint16_t gb_addr);
 	static uint32_t mbc3_ram_translate_func(uint16_t gb_addr);
 	static void mbc3_rom_write(uint16_t gb_addr, uint8_t val);
+	static uint8_t get_RTC_reg(uint8_t bank);
 	static uint32_t mbc5_rom_translate_func(uint16_t gb_addr);
 	static uint32_t mbc5_ram_translate_func(uint16_t gb_addr);
 	static void mbc5_rom_write(uint16_t gb_addr, uint8_t val);

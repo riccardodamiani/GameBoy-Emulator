@@ -37,6 +37,7 @@ Cartridge::Cartridge(const char* rom_filename){
 
 	header = (cartridge_header*)&this->rom[0x100];
 	verifyHeader(size);
+	rtc = 0;
 
 	if (header->cartridgeType == 0 ||		//no mbc chip
 		header->cartridgeType == 8 ||
@@ -68,7 +69,9 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->ramTranslateAddr = this->mbc2_ram_translate_func;
 		allocMbc2Ram();
 	}
-	else if (header->cartridgeType == 0x11 ||		//mbc3 chip (no RTC)
+	else if (header->cartridgeType == 0x0f ||		//mbc3 chip (RTC)
+			header->cartridgeType == 0x10 ||
+		header->cartridgeType == 0x11 ||		//mbc3 chip (no RTC)
 		header->cartridgeType == 0x12 ||
 		header->cartridgeType == 0x13) {
 		Cartridge::bank1_reg = 0;
@@ -78,6 +81,11 @@ Cartridge::Cartridge(const char* rom_filename){
 		this->romTranslateAddr = this->mbc3_rom_translate_func;
 		this->ramTranslateAddr = this->mbc3_ram_translate_func;
 		allocRamFromHeader();
+
+		if (header->cartridgeType == 0x0f ||		//mbc3 chip (RTC only)
+			header->cartridgeType == 0x10) {
+			rtc = 1;
+		}
 	}
 	else if (header->cartridgeType == 0x19 ||		//mbc5 chip
 		header->cartridgeType == 0x1a ||
@@ -285,6 +293,10 @@ uint8_t Cartridge::read(uint16_t address) {
 	if (address >= 0xa000 && address < 0xc000) {
 		if (!ram_access)
 			return 0;
+		if (rtc) {
+			if(ram_bank > 0x7)
+				return get_RTC_reg(ram_bank);
+		}
 		return ram[ramTranslateAddr(address)];
 	}
 
@@ -296,6 +308,10 @@ void Cartridge::write(uint16_t address, uint8_t val) {
 	if (address >= 0xa000 && address < 0xc000) {
 		if (!ram_access)
 			return;
+		if (rtc) {
+			if (ram_bank > 0x7)	//ignore time changes
+				return;
+		}
 		ram[ramTranslateAddr(address)] = val;
 		return;
 	}
@@ -431,7 +447,7 @@ uint32_t Cartridge::mbc3_rom_translate_func(uint16_t gb_addr) {
 
 
 uint32_t Cartridge::mbc3_ram_translate_func(uint16_t gb_addr) {
-	return ((gb_addr & 0x1fff) | (ram_bank << 13)) & ram_mask;
+	return ((gb_addr & 0x1fff) | ((ram_bank & 0x3) << 13)) & ram_mask;
 }
 
 void Cartridge::mbc3_rom_write(uint16_t gb_addr, uint8_t val) {
@@ -449,9 +465,47 @@ void Cartridge::mbc3_rom_write(uint16_t gb_addr, uint8_t val) {
 		if (bank2_reg == 0) bank2_reg = 1;
 	}
 	else if (gb_addr >= 0x4000 && gb_addr <= 0x5fff) {
-		ram_bank = val & 0x3;	//2 bit register (max 4 banks)
+		//this is not anded with b11 to keep these functions compatible with
+		//MBC3 with rtc chips that can have a ram bank number up to 0xc (for rtc registers)
+		ram_bank = val;	
 	}
 }
+
+
+uint8_t Cartridge::get_RTC_reg(uint8_t bank) {
+	time_t currentTime;
+	struct tm localTime;
+
+	time(&currentTime);
+	localtime_s(&localTime, &currentTime);
+
+	int hour = localTime.tm_hour;
+	int min = localTime.tm_min;
+	int sec = localTime.tm_sec;
+	int day = localTime.tm_yday;
+
+	switch (bank) {
+	case 8:
+		return sec;
+		break;
+	case 9:
+		return min;
+		break;
+	case 0xa:
+		return hour;
+		break;
+	case 0xb:
+		return day & 0xff;
+		break;
+	case 0xc:
+		return (day >> 8) & 0xff;
+		break;
+	default:
+		return 0;
+		break;
+	}
+}
+
 
 uint32_t Cartridge::mbc5_rom_translate_func(uint16_t gb_addr) {
 	if (gb_addr >= 0 && gb_addr <= 0x3fff) {
