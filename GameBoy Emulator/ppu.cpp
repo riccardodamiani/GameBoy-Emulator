@@ -169,10 +169,10 @@ void Ppu::drawScanline(int clk_cycles){
 
 }
 
-void Ppu::createWindowScanline(IO_map* io) {
+void Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
 
 	for (int i = 0; i < 160; i++) {
-		registers.windowScanline[i].trasparent = 1;
+		windowScanline[i].trasparent = 1;
 	}
 
 	if (!(io->LCDC & 0x20) || (_GBC_Mode && !(io->LCDC & 0x1))) {		//window disabled
@@ -213,8 +213,8 @@ void Ppu::createWindowScanline(IO_map* io) {
 			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
 
 			//draw the pixel
-			memcpy(&registers.windowScanline[screenX].color, &pixel, 4);
-			registers.windowScanline[screenX].trasparent = 0;
+			memcpy(&windowScanline[screenX].color, &pixel, 4);
+			windowScanline[screenX].trasparent = 0;
 			continue;
 		}
 
@@ -222,8 +222,8 @@ void Ppu::createWindowScanline(IO_map* io) {
 		SDL_Color pixel = dmg_palette[color];
 
 		//draw the pixel
-		memcpy(&registers.windowScanline[screenX].color, &pixel, 4);
-		registers.windowScanline[screenX].trasparent = 0;
+		memcpy(&windowScanline[screenX].color, &pixel, 4);
+		windowScanline[screenX].trasparent = 0;
 	}
 
 }
@@ -323,10 +323,11 @@ void Ppu::drawBuffer(IO_map* io) {
 			scanlineBuffer[i] = 0xffffffff;
 		}
 	}
-	priority_pixel spriteScanline[160], bgScanline[160];
+	priority_pixel spriteScanline[160], bgScanline[160], windowScanline[160];
 
+	//create scanline buffers
 	createBackgroundScanline(bgScanline, io);
-	createWindowScanline(io);
+	createWindowScanline(windowScanline, io);
 	createSpriteScanline(spriteScanline, io);
 
 	for (int i = 0; i < 160; i++) {
@@ -334,25 +335,25 @@ void Ppu::drawBuffer(IO_map* io) {
 		if (spriteScanline[i].trasparent) {
 			scanlineBuffer[i] = bgScanline[i].color;
 			//window pixels
-			if (!registers.windowScanline[i].trasparent) {
-				scanlineBuffer[i] = registers.windowScanline[i].color;
+			if (!windowScanline[i].trasparent) {
+				scanlineBuffer[i] = windowScanline[i].color;
 			}
 			continue;
 		}
 
-		//background priority
+		//if background has priority, the transparency is considered
 		if ((bgScanline[i].priority | spriteScanline[i].priority) && !bgScanline[i].trasparent) {
 			scanlineBuffer[i] = bgScanline[i].color;
 			//window pixels
-			if (!registers.windowScanline[i].trasparent) {
-				scanlineBuffer[i] = registers.windowScanline[i].color;
+			if (!windowScanline[i].trasparent) {
+				scanlineBuffer[i] = windowScanline[i].color;
 			}
 			continue;
 		}
 
 		//window pixels
-		if (!registers.windowScanline[i].trasparent) {
-			scanlineBuffer[i] = registers.windowScanline[i].color;
+		if (!windowScanline[i].trasparent) {
+			scanlineBuffer[i] = windowScanline[i].color;
 		}
 
 		//draw sprite

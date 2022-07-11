@@ -218,8 +218,6 @@ struct ppu_registers {
 	sprite_attribute* scanlineSprites[10];
 	background_tile backgroundTiles[21];
 	uint8_t firstBgTilePixelX, firstBgTilePixelY;
-	priority_pixel windowScanline[160];
-	uint8_t windowScanlineActive;
 	uint8_t enabled;
 };
 
