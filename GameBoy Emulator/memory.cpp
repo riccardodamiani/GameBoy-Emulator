@@ -2,6 +2,7 @@
 #include "errors.h"
 #include "globals.h"
 #include "sound.h"
+#include "ppu.h"
 
 #include <fstream>
 #include <string>
@@ -207,6 +208,7 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 	if (gb_address == 0xff04) value = 0;
 
 	if (_GBC_Mode) {
+
 		if (gb_address >= 0xd000 && gb_address <= 0xdfff) {
 			wram_banks[(io_map->SVBK == 0 ? 1 : io_map->SVBK & 0x7) - 1][gb_address - 0xd000] = value;
 		}
@@ -225,6 +227,17 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	this->gb_mem[gb_address] = value;
 
+	if (_GBC_Mode) {
+		if (gb_address == 0xff55) {		//hdma
+			if (io_map->HDMA.transfer_mode == 0 && hdma_active == 1) {		//pause hdma
+				hdma_active = 0;
+				io_map->HDMA.transfer_mode = 1;
+			}
+			else
+				activate_hdma();
+		}
+	}
+
 	if (gb_address >= 0xff10 && gb_address <= 0xff26) {		//audio registers
 		_sound->updateReg(gb_address, value);
 		return;
@@ -242,5 +255,59 @@ void Memory::oam_dma_copy(void) {
 	uint16_t dst_addr = 0xfe00;		//always OAM
 	for (int i = 0; i < 160; i++) {
 		write(dst_addr++, read(src_addr++));
+	}
+}
+
+void Memory::activate_hdma(void) {
+	
+	//H-BLANK tranfer mode
+	if (io_map->HDMA.transfer_mode) {
+		hdma_active = 1;
+		return;
+	}
+
+	//General purpose DMA
+	uint16_t src_addr = ((io_map->HDMA.HDMA2) | (io_map->HDMA.HDMA1 << 8)) & 0xfff0;
+	uint16_t dst_addr = 0x8000 | ((((io_map->HDMA.HDMA4) | (io_map->HDMA.HDMA3 << 8)) & 0x1ff0));
+
+	//copy junk in this range
+	if (src_addr >= 0x8000 && src_addr <= 0x9fff) {
+		for (int i = 0; i < (io_map->HDMA.transf_length + 1) * 16; i++) {
+			write(dst_addr + i, 0);
+		}
+	}
+
+	//copy data
+	for (int i = 0; i < (io_map->HDMA.transf_length + 1) * 16; i++) {
+		write(dst_addr + i, read(src_addr + i));
+	}
+	io_map->HDMA.transf_length = 0x7f;
+	io_map->HDMA.transfer_mode = 1;
+}
+
+void Memory::transfer_hdma() {
+	if (!hdma_active)
+		return;
+
+	//General purpose DMA
+	uint16_t src_addr = ((io_map->HDMA.HDMA2) | (io_map->HDMA.HDMA1 << 8)) & 0xfff0;
+	uint16_t dst_addr = 0x8000 | ((((io_map->HDMA.HDMA4) | (io_map->HDMA.HDMA3 << 8)) & 0x1ff0));
+
+	//copy data
+	for (int i = 0; i < 16; i++) {
+		write(dst_addr++, read(src_addr++));
+	}
+
+	//update addresses
+	io_map->HDMA.HDMA2 = src_addr & 0xf0;
+	io_map->HDMA.HDMA1 = (src_addr & 0xff00) >> 8;
+
+	io_map->HDMA.HDMA4 = (dst_addr & 0xf0);
+	io_map->HDMA.HDMA3 = (dst_addr & 0x1f00) >> 8;
+
+	io_map->HDMA.transf_length--;
+	if (io_map->HDMA.transf_length == 0x7f) {
+		hdma_active = 0;
+		io_map->HDMA.transfer_mode = 1;
 	}
 }
