@@ -208,9 +208,7 @@ int GameBoy::execute() {
 	uint16_t pc = registers.pc;
 
 	uint8_t opcode = _memory->read(pc);
-	if (pc == 0xd8) {
-		pc = pc;
-	}
+
 	switch (opcode) {
 	case 0x0:		//NOP
 	{

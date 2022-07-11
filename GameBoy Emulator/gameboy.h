@@ -39,6 +39,7 @@ private:
 	void handleTimer(int cycles);
 	void handleJoypad(void);
 	void handleSerial(void);
+	void handleHDMA(void);
 
 	int RL_n(uint8_t& reg);
 	int RR_n(uint8_t& reg);
