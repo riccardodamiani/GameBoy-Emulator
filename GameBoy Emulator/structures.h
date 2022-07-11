@@ -221,6 +221,18 @@ struct ppu_registers {
 	uint8_t enabled;
 };
 
+struct rtc_registers {
+	uint8_t SEC;	//secs
+	uint8_t MIN;	//mins
+	uint8_t HOUR;	//hours
+	uint8_t DAY_L;	//8 lsbs of day counter
+	uint8_t DAY_H : 1,	//msb of day counter
+		not_used : 5,
+		HALT : 1,	//stop timer
+		DC : 1;	//day counter carry flag
+	uint8_t active;	//emulator var
+};
+
 struct STAT_struct {
 	uint8_t lcd_mode : 2,		//lcd draw mode
 		ly_cf : 1,			//LY coincidence flag
