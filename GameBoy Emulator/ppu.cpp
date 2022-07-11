@@ -290,7 +290,7 @@ void Ppu::findScanlineSprites(sprite_attribute* oam, IO_map* io) {
 	if (!_GBC_Mode) sort(sprites, 40);
 	int spriteSize = ((io->LCDC & 0x4) ? 16 : 8);
 	int j = 0;
-	for (int i = 39; i >= 0; i--) {
+	for (int i = 0; i < 40; i++) {
 		int yPos = sprites[i]->y_pos - 16;
 		if (io->LY >= yPos &&
 			(io->LY < yPos + spriteSize)) {
