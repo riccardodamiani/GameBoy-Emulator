@@ -263,7 +263,7 @@ void Memory::activate_hdma(void) {
 	//H-BLANK tranfer mode
 	if (io_map->HDMA.transfer_mode) {
 		hdma_active = 1;
-		io_map->HDMA.transfer_mode = 0;
+		io_map->HDMA.transfer_mode = 0;	//the transfer is active
 		return;
 	}
 
@@ -283,7 +283,7 @@ void Memory::activate_hdma(void) {
 		write(dst_addr + i, read(src_addr + i));
 	}
 	io_map->HDMA.transf_length = 0x7f;
-	io_map->HDMA.transfer_mode = 1;
+	io_map->HDMA.transfer_mode = 1;	//transfer finished
 }
 
 void Memory::transfer_hdma() {
@@ -298,7 +298,7 @@ void Memory::transfer_hdma() {
 		write(dst_addr++, read(src_addr++));
 	}
 
-	//update addresses
+	//update hdma registers
 	io_map->HDMA.HDMA2 = src_addr & 0xf0;
 	io_map->HDMA.HDMA1 = (src_addr & 0xff00) >> 8;
 
@@ -308,6 +308,6 @@ void Memory::transfer_hdma() {
 	io_map->HDMA.transf_length--;
 	if (io_map->HDMA.transf_length == 0x7f) {
 		hdma_active = 0;
-		io_map->HDMA.transfer_mode = 1;
+		io_map->HDMA.transfer_mode = 1;	//transfer finished
 	}
 }
