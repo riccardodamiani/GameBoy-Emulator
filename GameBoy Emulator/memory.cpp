@@ -263,6 +263,7 @@ void Memory::activate_hdma(void) {
 	//H-BLANK tranfer mode
 	if (io_map->HDMA.transfer_mode) {
 		hdma_active = 1;
+		io_map->HDMA.transfer_mode = 0;
 		return;
 	}
 
@@ -289,7 +290,6 @@ void Memory::transfer_hdma() {
 	if (!hdma_active)
 		return;
 
-	//General purpose DMA
 	uint16_t src_addr = ((io_map->HDMA.HDMA2) | (io_map->HDMA.HDMA1 << 8)) & 0xfff0;
 	uint16_t dst_addr = 0x8000 | ((((io_map->HDMA.HDMA4) | (io_map->HDMA.HDMA3 << 8)) & 0x1ff0));
 
