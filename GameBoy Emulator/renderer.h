@@ -34,10 +34,6 @@ private:
 	void renderMessage(float elapsed);
 	void imguiFrame(float elapsed);
 
-	void _debug_renderBgMap();
-	void _debug_renderWindowMap();
-	void _debug_renderBgTiles();
-
 	//window stuff
 	SDL_Window* _window;
 	SDL_Renderer* _renderer;
