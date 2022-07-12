@@ -36,7 +36,7 @@ private:
 	int keyIndex;
 
 	joypad jp;
-	joypad_map keysMap[2];
+	joypad_map keysMap;
 };
 
 #endif

@@ -214,13 +214,12 @@ void Renderer::imguiFrame(float elapsed) {
 			ImGui::BeginTable("Keyboard map", 3);
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0); ImGui::Text("Button");
-			ImGui::TableSetColumnIndex(1); ImGui::Text("Key 1");
-			ImGui::TableSetColumnIndex(2); ImGui::Text("Key 2");
+			ImGui::TableSetColumnIndex(1); ImGui::Text("Key");
 			SDL_Scancode* map = _input->getKeyboardMap();
 
 			for (int row = 0; row < 8; row++) {		//create keyboard map table
 				ImGui::TableNextRow();
-				for (int column = 0; column < 3; column++) {
+				for (int column = 0; column < 2; column++) {
 					ImGui::TableSetColumnIndex(column);
 					if (column == 0) {
 						ImGui::Text(gbButtonStrings[row]);

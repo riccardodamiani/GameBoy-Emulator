@@ -5,7 +5,7 @@ Open-source Gameboy/Gameboy Color emulator written in C++. It uses SDL2 for grap
 [SDL2](https://libsdl.org/download-2.0.php), [SDL2 Mixer](https://www.libsdl.org/projects/SDL_mixer/), [ImGui](https://github.com/ocornut/imgui) and [imgui_sdl](https://github.com/Tyyppi77/imgui_sdl).
 
 ## Run requirements
-For the emulator to work you need to have SDL2.dll, SDL2_mixer.dll.
+For the emulator to work you need to have SDL2.dll and SDL2_mixer.dll.
 You also need to download the Gameboy bootrom (256 bytes) and the Gameboy Color bootrom (2304 bytes) and rename them, respectively, 'bootrom.bin' and 'gbc_bootrom.bin'.
 All the mentioned files need to be copied in the same folder of the executable.
 
@@ -16,17 +16,17 @@ All the mentioned files need to be copied in the same folder of the executable.
 
 ## Keyboard map
 Keyboard map can be customized under menu/settings.
-| GB button 	| Key 1 		| Key 2 		|
-|---------------|---------------|---------------|
-| a 			| q 			| o 			|
-| b 			| e 			| p 			|
-| start 		| space 		| space			|
-| select		| shift 		| enter 		|
-| left 			| a 			| left arrow 	|
-| right 		| d 			| right arrow 	|
-| up			| w 			| up arrow		|
-| down 			| s 			| down arrow	|
-| save state 	| f3 			| f3 			|
+| GB button 	| Key 1 		| 
+|---------------|---------------|
+| a 			| o 			|
+| b 			| p 			|
+| start 		| space 		|
+| select		| left shift 	|
+| left 			| a 			|
+| right 		| d 			|
+| up			| w 			|
+| down 			| s 			|
+| save state 	| f3 			|
 
 
 

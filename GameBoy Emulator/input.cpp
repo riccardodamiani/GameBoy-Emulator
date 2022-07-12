@@ -17,11 +17,8 @@ Input::Input() {
 void Input::Init() {
 
 	if (!loadKeyboardMap()) {
-		keysMap[0] = { SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT,
-			SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_UP, SDL_SCANCODE_DOWN };
-
-		keysMap[1] = { SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN,
-		SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S };
+		keysMap = { SDL_SCANCODE_O, SDL_SCANCODE_P, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT,
+			SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_W, SDL_SCANCODE_S };
 	}
 
 	for (int i = 0; i < _pressedKeys.size(); i++) {
@@ -34,7 +31,7 @@ void Input::Init() {
 }
 
 SDL_Scancode* Input::getKeyboardMap() {
-	return (SDL_Scancode*)&keysMap[0];
+	return (SDL_Scancode*)&keysMap;
 }
 
 void Input::changingKeyboardMap(int keyIndex) {
@@ -44,7 +41,7 @@ void Input::changingKeyboardMap(int keyIndex) {
 
 void Input::saveKeyboardMap() {
 	std::ofstream file("config.dat", std::ios::binary);
-	file.write((char*)&keysMap[0], 16*4);
+	file.write((char*)&keysMap, sizeof(keysMap));
 	file.close();
 }
 
@@ -52,7 +49,7 @@ bool Input::loadKeyboardMap() {
 	std::ifstream file("config.dat", std::ios::binary);
 	if (!file.is_open())
 		return false;
-	file.read((char*)&keysMap[0], 16 * 4);
+	file.read((char*)&keysMap, sizeof(keysMap));
 	file.close();
 	return true;
 }
@@ -65,14 +62,14 @@ void Input::beginNewFrame() {
 	getSDLEvent();
 
 	jp_mutex.lock();
-	jp.left = (isKeyHeld(keysMap[0].left) || isKeyHeld(keysMap[1].left));
-	jp.right = (isKeyHeld(keysMap[0].right) || isKeyHeld(keysMap[1].right));
-	jp.up = (isKeyHeld(keysMap[0].up) || isKeyHeld(keysMap[1].up));
-	jp.down = (isKeyHeld(keysMap[0].down) || isKeyHeld(keysMap[1].down));
-	jp.a = (isKeyHeld(keysMap[0].a) || isKeyHeld(keysMap[1].a));
-	jp.b = (isKeyHeld(keysMap[0].b) || isKeyHeld(keysMap[1].b));
-	jp.select = (isKeyHeld(keysMap[0].select) || isKeyHeld(keysMap[1].select));
-	jp.start = (isKeyHeld(keysMap[0].start) || isKeyHeld(keysMap[1].start));
+	jp.left = (isKeyHeld(keysMap.left));
+	jp.right = (isKeyHeld(keysMap.right));
+	jp.up = (isKeyHeld(keysMap.up));
+	jp.down = (isKeyHeld(keysMap.down));
+	jp.a = (isKeyHeld(keysMap.a));
+	jp.b = (isKeyHeld(keysMap.b));
+	jp.select = (isKeyHeld(keysMap.select));
+	jp.start = (isKeyHeld(keysMap.start));
 	jp_mutex.unlock();
 
 	if (wasKeyReleased(SDL_SCANCODE_F3)) {
@@ -97,7 +94,7 @@ void Input::getSDLEvent() {
 				this->keyDownEvent(event);
 				if (updatingKbMap) {
 					updatingKbMap = false;
-					((SDL_Scancode*)&keysMap[0])[keyIndex] = event.key.keysym.scancode;
+					((SDL_Scancode*)&keysMap)[keyIndex] = event.key.keysym.scancode;
 				}
 			}
 		}
