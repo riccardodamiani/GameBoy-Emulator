@@ -53,13 +53,15 @@ void Ppu::clearScanline(IO_map* io) {
 void Ppu::clearScreen() {
 	bufferMutex.lock();
 	if (_GBC_Mode) {
-		memset(&screenBuffers[0], 0xffffffff, 160 * 144);
-		memset(&screenBuffers[1], 0xffffffff, 160 * 144);
+		for (int i = 0; i < 160 * 144; i++) {
+			screenBuffers[0][i] = 0xffffffff;
+			screenBuffers[1][i] = 0xffffffff;
+		}
 		bufferMutex.unlock();
 		return;
 	}
 
-	for (int i = 0; i < 160*144; i++) {
+	for (int i = 0; i < 160 * 144; i++) {
 		memcpy(&screenBuffers[0][i], &dmg_palette[0], 4);
 		memcpy(&screenBuffers[1][i], &dmg_palette[0], 4);
 	}
