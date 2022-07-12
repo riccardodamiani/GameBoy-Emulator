@@ -225,6 +225,15 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 		}
 	}
 
+	if (gb_address >= 0xff10 && gb_address <= 0xff26) {		//audio registers
+		if (gb_address == 0xff26)
+			this->gb_mem[gb_address] = (this->gb_mem[gb_address] & 0x0f) | (value & 0xf0);
+		else this->gb_mem[gb_address] = value;
+
+		_sound->updateReg(gb_address, value);
+		return;
+	}
+
 	this->gb_mem[gb_address] = value;
 
 	if (_GBC_Mode) {
@@ -236,11 +245,6 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 			else
 				activate_hdma();
 		}
-	}
-
-	if (gb_address >= 0xff10 && gb_address <= 0xff26) {		//audio registers
-		_sound->updateReg(gb_address, value);
-		return;
 	}
 
 	if (gb_address == 0xff46)
