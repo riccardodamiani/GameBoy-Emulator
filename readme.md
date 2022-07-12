@@ -16,7 +16,7 @@ All the mentioned files need to be copied in the same folder of the executable.
 
 ## Keyboard map
 Keyboard map can be customized under menu/settings.
-| GB button 	| Key 1 		| 
+| GB button 	| Key 			| 
 |---------------|---------------|
 | a 			| o 			|
 | b 			| p 			|
