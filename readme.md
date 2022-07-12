@@ -4,8 +4,12 @@ Open-source Gameboy/Gameboy Color emulator written in C++. It uses SDL2 for grap
 ## Building requirements
 [SDL2](https://libsdl.org/download-2.0.php), [SDL2 Mixer](https://www.libsdl.org/projects/SDL_mixer/), [ImGui](https://github.com/ocornut/imgui) and [imgui_sdl](https://github.com/Tyyppi77/imgui_sdl).
 
+## Run requirements
+For the emulator to work you need to have SDL2.dll, SDL2_mixer.dll.
+You also need to download the Gameboy bootrom (256 bytes) and the Gameboy Color bootrom (2304 bytes) and rename them, respectively, 'bootrom.bin' and 'gbc_bootrom.bin'.
+All the mentioned files need to be copied in the same folder of the executable.
 
-## Not yet implemented
+## Not supported
 - MBC4 memory bank controller
 - Serial communication
 
