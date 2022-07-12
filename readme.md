@@ -1,5 +1,5 @@
 # Gameboy Emulator
-Open-source Gameboy/Gameboy Color emulator written in C++. It uses SDL2 for graphics and SDL Mixer for audio. In the current state a lot of games runs without major issues, however note that this is just a project made for fun and perfect emulation is not my main goal.
+Open-source Gameboy/Gameboy Color emulator written in C++. It uses SDL2 for graphics and SDL Mixer for audio. In the current state a lot of games run without major issues, however note that this is just a project made for fun and perfect emulation is not my main goal.
 
 ## Building requirements
 [SDL2](https://libsdl.org/download-2.0.php), [SDL2 Mixer](https://www.libsdl.org/projects/SDL_mixer/), [ImGui](https://github.com/ocornut/imgui) and [imgui_sdl](https://github.com/Tyyppi77/imgui_sdl).
