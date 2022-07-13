@@ -22,6 +22,7 @@ public:
 	uint8_t* getOam();
 	void saveCartridgeState();
 	SDL_Color getBackgroundColor(int palette, int num);
+	const color_palette const* getBackgroundPalette();
 	SDL_Color getSpriteColor(int palette, int num);
 	void transfer_hdma();
 private:

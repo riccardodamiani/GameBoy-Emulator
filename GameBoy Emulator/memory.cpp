@@ -169,6 +169,10 @@ SDL_Color Memory::getBackgroundColor(int palette, int num) {
 	return c;
 }
 
+const color_palette const* Memory::getBackgroundPalette() {
+	return (color_palette*)bg_palette_mem;
+}
+
 SDL_Color Memory::getSpriteColor(int palette, int num) {
 	color_palette* gb_c = (color_palette*)&sprite_palette_mem[(palette * 4 + num) * 2];
 	SDL_Color c = { gb_c->red * 8.2, gb_c->green * 8.2, gb_c->blue * 8.2, 255 };

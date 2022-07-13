@@ -17,6 +17,10 @@ void Ppu::Init() {
 	vram[0] = _memory->getVramBank0();
 	vram[1] = _memory->getVramBank1();
 
+	for (int i = 0; i < 32; i++) {
+		color_lookup_table[i] = i * 8.2;
+	}
+
 	//used to provide a copy of the buffer to render to the renderer
 	tempBuffer = (uint32_t*)malloc(23040 * 4);
 }
@@ -186,6 +190,18 @@ std::pair <bool, int> Ppu::createWindowScanline(priority_pixel* windowScanline, 
 
 	background_attribute bg_att = {};
 
+	//create the background palette table
+	const color_palette const* pixelGBCPalette = _memory->getBackgroundPalette();
+	SDL_Color pixel_palette[32];
+	if (_GBC_Mode) {
+		for (int i = 0; i < 32; i++) {
+			pixel_palette[i] = { color_lookup_table[pixelGBCPalette[i].red],
+				color_lookup_table[pixelGBCPalette[i].green],
+				color_lookup_table[pixelGBCPalette[i].blue],
+				255 };
+		}
+	}
+
 	//memory section for window tile map
 	uint32_t tileMapAddr = ((io->LCDC & 0x40) ? 0x1c00 : 0x1800);
 
@@ -214,10 +230,8 @@ std::pair <bool, int> Ppu::createWindowScanline(priority_pixel* windowScanline, 
 		windowScanline[screenX].trasparent = (color_nr == 0);
 
 		if (_GBC_Mode) {
-			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
-
 			//draw the pixel
-			memcpy(&windowScanline[screenX].color, &pixel, 4);
+			memcpy(&windowScanline[screenX].color, &pixel_palette[bg_att.bg_palette*4 + color_nr], 4);
 			continue;
 		}
 
@@ -376,6 +390,18 @@ void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
 
 	findScanlineBgTiles(io);
 
+	//create the background palette table
+	const color_palette const* pixelGBCPalette = _memory->getBackgroundPalette();
+	SDL_Color pixel_palette[32];
+	if (_GBC_Mode) {
+		for (int i = 0; i < 32; i++) {
+			pixel_palette[i] = { color_lookup_table[pixelGBCPalette[i].red],
+				color_lookup_table[pixelGBCPalette[i].green],
+				color_lookup_table[pixelGBCPalette[i].blue],
+				255 };
+		}
+	}
+
 	for (int i = 0; i < 160; i++) {
 		uint8_t bgIndex = (registers.firstBgTilePixelX + i) / 8;
 		background_tile& bgTile = registers.backgroundTiles[bgIndex];
@@ -388,10 +414,9 @@ void Ppu::createBackgroundScanline(priority_pixel* scanline, IO_map*io) {
 		scanline[i].priority = bgTile.tile_attr.bg_oam_priority;
 
 		if (_GBC_Mode) {
-			SDL_Color pixel = _memory->getBackgroundColor(bgTile.tile_attr.bg_palette, color_nr);
 
 			//draw the pixel
-			memcpy(&scanline[i], &pixel, 4);
+			memcpy(&scanline[i].color, &pixel_palette[bgTile.tile_attr.bg_palette * 4 + color_nr], 4);
 			continue;
 		}
 
