@@ -171,17 +171,17 @@ void Ppu::drawScanline(int clk_cycles){
 
 }
 
-void Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
+std::pair <bool, int> Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
+
+	if (!(io->LCDC & 0x20) || (_GBC_Mode && !(io->LCDC & 0x1))) {		//window disabled
+		return std::pair <bool, int> (false, 0);
+	}
+	if (io->LY < io->WY || io->WX > 166) {		//not shown
+		return std::pair <bool, int>(false, 0);
+	}
 
 	for (int i = 0; i < 160; i++) {
 		windowScanline[i].trasparent = 1;
-	}
-
-	if (!(io->LCDC & 0x20) || (_GBC_Mode && !(io->LCDC & 0x1))) {		//window disabled
-		return;
-	}
-	if (io->LY < io->WY || io->WX > 166) {		//not shown
-		return;
 	}
 
 	background_attribute bg_att = {};
@@ -191,7 +191,8 @@ void Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
 
 	uint8_t pixelRow = (io->LY - io->WY) % 8;
 	uint8_t mapRow = (io->LY - io->WY) / 8;
-	for (uint8_t screenX = std::max(io->WX - 7, 0); screenX < 160; screenX++) {
+	uint8_t startingPixel = std::max(io->WX - 7, 0);
+	for (uint8_t screenX = startingPixel; screenX < 160; screenX++) {
 		uint8_t tileMapX = screenX - io->WX + 7;
 		short tileNum;
 		if (io->LCDC & 0x10) {		//4th bit in LCDC: tiles counting methods
@@ -210,13 +211,13 @@ void Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
 		int col = tileMapX % 8;
 		uint8_t color_nr = ((tileMem[pixelRow * 2] >> (7 - col)) & 0x1) |
 			(((tileMem[pixelRow * 2 + 1] >> (7 - col)) << 1) & 0x2);
+		windowScanline[screenX].trasparent = (color_nr == 0);
 
 		if (_GBC_Mode) {
 			SDL_Color pixel = _memory->getBackgroundColor(bg_att.bg_palette, color_nr);
 
 			//draw the pixel
 			memcpy(&windowScanline[screenX].color, &pixel, 4);
-			windowScanline[screenX].trasparent = 0;
 			continue;
 		}
 
@@ -225,9 +226,8 @@ void Ppu::createWindowScanline(priority_pixel* windowScanline, IO_map* io) {
 
 		//draw the pixel
 		memcpy(&windowScanline[screenX].color, &pixel, 4);
-		windowScanline[screenX].trasparent = 0;
 	}
-
+	return std::pair <bool, int>(true, startingPixel);
 }
 
 void Ppu::createSpriteScanline(priority_pixel* scanline, IO_map* io) {
@@ -329,7 +329,7 @@ void Ppu::drawBuffer(IO_map* io) {
 
 	//create scanline buffers
 	createBackgroundScanline(bgScanline, io);
-	createWindowScanline(windowScanline, io);
+	std::pair <bool, int> windowStatus = createWindowScanline(windowScanline, io);
 	createSpriteScanline(spriteScanline, io);
 
 	for (int i = 0; i < 160; i++) {
@@ -337,25 +337,25 @@ void Ppu::drawBuffer(IO_map* io) {
 		if (spriteScanline[i].trasparent) {
 			scanlineBuffer[i] = bgScanline[i].color;
 			//window pixels
-			if (!windowScanline[i].trasparent) {
+			if (windowStatus.first & (i >= windowStatus.second)) {
 				scanlineBuffer[i] = windowScanline[i].color;
 			}
 			continue;
 		}
 
 		//if background has priority, the transparency is considered
-		if ((bgScanline[i].priority | spriteScanline[i].priority) && !bgScanline[i].trasparent) {
-			scanlineBuffer[i] = bgScanline[i].color;
+		if ((bgScanline[i].priority | spriteScanline[i].priority)) {
+
+			scanlineBuffer[i] = spriteScanline[i].color;
+
+			if(!bgScanline[i].trasparent)
+				scanlineBuffer[i] = bgScanline[i].color;
+
 			//window pixels
-			if (!windowScanline[i].trasparent) {
+			if (windowStatus.first & (i >= windowStatus.second) & !windowScanline[i].trasparent) {
 				scanlineBuffer[i] = windowScanline[i].color;
 			}
 			continue;
-		}
-
-		//window pixels
-		if (!windowScanline[i].trasparent) {
-			scanlineBuffer[i] = windowScanline[i].color;
 		}
 
 		//draw sprite

@@ -50,7 +50,7 @@ private:
 	void disable();
 	void enable();
 	void findScanlineBgTiles(IO_map* io);
-	void createWindowScanline(priority_pixel *scanline, IO_map* io);
+	std::pair <bool, int> createWindowScanline(priority_pixel *scanline, IO_map* io);
 	void findScanlineSprites(sprite_attribute* oam, IO_map* io);
 	void flipTile(background_tile& tile);
 	void createBackgroundScanline(priority_pixel* scanline, IO_map* io);
