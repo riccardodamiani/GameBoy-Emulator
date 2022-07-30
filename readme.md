@@ -49,7 +49,7 @@ Keyboard map can be customized under menu/settings.
 | Kirby's Dream Land					| Playable		|		|
 | Kirby's Dream Land 2 					| Playable		|		|
 | Metroid II 							| Playable		|		|
-| FF Legend III							| Fine			| Freezes when entering battle simulator |
+| FF Legend III							| Fine			| Hangs when entering battle simulator |
 
 **Great:** Runs without any noticeable issues  
 **Fine:** Runs with some bugs or glitches  
