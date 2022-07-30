@@ -211,6 +211,7 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 	//writing any value to the divider register resets it to 0
 	if (gb_address == 0xff04) value = 0;
 
+
 	if (_GBC_Mode) {
 
 		if (gb_address >= 0xd000 && gb_address <= 0xdfff) {
@@ -241,7 +242,7 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 	this->gb_mem[gb_address] = value;
 
 	if (_GBC_Mode) {
-		if (gb_address == 0xff55) {		//hdma
+		if (gb_address == 0xff55 && (io_map->LCDC & 0x80)) {		//hdma
 			if (io_map->HDMA.transfer_mode == 0 && hdma_active == 1) {		//pause hdma
 				hdma_active = 0;
 				io_map->HDMA.transfer_mode = 1;
