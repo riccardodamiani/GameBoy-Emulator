@@ -210,7 +210,10 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 
 	//writing any value to the divider register resets it to 0
 	if (gb_address == 0xff04) value = 0;
-
+	if (gb_address == 0xff4d) {	//double speed register
+		this->gb_mem[gb_address] = (this->gb_mem[gb_address] & 0xfe) | (value & 0x1);	//only bit 0 is writable
+		return;
+	}
 
 	if (_GBC_Mode) {
 
