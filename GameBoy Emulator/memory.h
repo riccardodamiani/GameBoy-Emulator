@@ -27,8 +27,7 @@ public:
 	void transfer_hdma();
 private:
 	bool load_bootrom();
-	void activate_hdma();
-	
+	void activate_hdma(uint8_t screenEnable);
 
 	uint8_t *boot_rom0;		//256 bytes. 0x0-0x100
 	uint8_t* boot_rom1;		//1792 bytes. 0x200-0x8ff. GBC only

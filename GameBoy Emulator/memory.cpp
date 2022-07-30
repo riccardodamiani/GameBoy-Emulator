@@ -245,13 +245,13 @@ void Memory::write(uint16_t gb_address, uint8_t value) {
 	this->gb_mem[gb_address] = value;
 
 	if (_GBC_Mode) {
-		if (gb_address == 0xff55 && (io_map->LCDC & 0x80)) {		//hdma
+		if (gb_address == 0xff55) {		//gdma/hdma
 			if (io_map->HDMA.transfer_mode == 0 && hdma_active == 1) {		//pause hdma
 				hdma_active = 0;
 				io_map->HDMA.transfer_mode = 1;
 			}
 			else
-				activate_hdma();
+				activate_hdma(io_map->LCDC & 0x80);
 		}
 	}
 
@@ -270,10 +270,12 @@ void Memory::oam_dma_copy(void) {
 	}
 }
 
-void Memory::activate_hdma(void) {
+void Memory::activate_hdma(uint8_t screenEnable) {
 	
 	//H-BLANK tranfer mode
 	if (io_map->HDMA.transfer_mode) {
+		if (screenEnable == 0)	//if screen is off HDMA cannot start
+			return;
 		hdma_active = 1;
 		io_map->HDMA.transfer_mode = 0;	//the transfer is active
 		return;
